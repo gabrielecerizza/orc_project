@@ -1,5 +1,7 @@
 import numpy as np
 
+from .branch_bound import Node
+
 EPS = 1e-6
 
 
@@ -90,5 +92,6 @@ def dobson(A, b):
 
 def hall_hochbaum(A, b):
     return _find_cover(A, b, "hall_hochbaum")
+
 
 #TODO: hall_hochbaum gets better than dobson the bigger the problem
