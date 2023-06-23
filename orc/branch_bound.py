@@ -51,7 +51,8 @@ class Node:
     
     def compute_lb(self, A, b, ub):
         self.lb = \
-            self.lb_strategy(A, b, ub, self.x0, self.x1, self)
+            self.lb_strategy(A, b, ub, 
+                             self.x0[:], self.x1[:], self)
         
     def add_to_x0(self, ls):
         self.x0 = list(set(self.x0).union(set(ls)))
@@ -82,10 +83,12 @@ class Node:
         return self.lambd
     
     def get_x0(self):
-        return self.x0
+        # Return a copy, so that the list is not modified
+        return self.x0[:]
     
     def get_x1(self):
-        return self.x1
+        # Return a copy, so that the list is not modified
+        return self.x1[:]
     
     def get_num_var(self):
         return self.num_var
@@ -125,7 +128,7 @@ class Tree:
 class BranchAndBound:
     def __init__(
             self, branch_strategy, lb_strategy, 
-            callbacks=None):
+            callbacks=None, verbose=0):
         self.tree = Tree(
             Node(0, branch_strategy, lb_strategy))
         self.node_count = 1
@@ -133,41 +136,57 @@ class BranchAndBound:
         self.ub = np.inf
         self.x_best = None
         self.callbacks = callbacks or []
+        self.verbose = verbose
 
     def search(self, A, b):
-        self.preprocess(A, b)
         while (not self.tree.is_empty()):
             node = self.tree.remove()
+            self.log("search", "removed", str(node))
+            self.preprocess(A, b, node)
+            self.log("search", "preprocessed", str(node))
             if node.get_level() == 0:
                 node.compute_lb(A, b, self.ub)
+                self.log("search", "root lb", str(node))
             self.branch(node, A, b)
             
-    def preprocess(self, A, b):
+    def preprocess(self, A, b, node):
         for callback in self.callbacks:
-            callback.on_preprocess(self, A, b)
+            callback.on_preprocess(self, A, b, node)
 
     def reduction(self, node, A, b):
         for callback in self.callbacks:
             callback.on_reduction(node, A, self.ub)
             if node.is_leaf(A, b):
                 self.evaluate_leaf(node, A)
+                self.log("reduction", "leaf", str(node))
                 return True
             elif node.is_infeasible(A, b):
+                self.log("reduction", "infeasible", str(node))
                 return True
         return False
 
     def branch(self, node, A, b):
+        self.log("branch", "entered", str(node))
         closed = self.reduction(node, A, b)
-        if closed: return
+        if closed:
+            self.log("branch", "closed", str(node))
+            return
         for child in node.generate_children(A, b, self):
+            self.log("branch", "generated child", str(child))
             if child.is_leaf(A, b):
+                self.log("branch", "child is leaf", str(child))
                 self.evaluate_leaf(child, A)
             elif not child.is_infeasible(A, b):
                 child.compute_lb(A, b, self.ub)
-                if child.get_lb() < self.ub:   
+                self.log("branch", "child lb", str(child))
+                if child.get_lb() < self.ub:
+                    self.log("branch", 
+                             "child added to list", str(child)) 
                     self.tree.add(child)
-                
-            
+            else:
+                self.log("branch", 
+                         "child infeasible", str(child)) 
+                       
     def evaluate_leaf(self, leaf, A):
         leaf_val = leaf.get_val(A)
         if (self.best is None) or \
@@ -178,10 +197,21 @@ class BranchAndBound:
             x[leaf.get_x1()] = 1
             self.x_best = x
 
+    def log(self, method, event, *args):
+        l = f"[{method}]: {event}, {args}"
+        if self.verbose > 0:
+            print(l)
+
     def get_new_id(self):
         id = self.node_count
         self.node_count += 1
         return id
+    
+    def get_ub(self):
+        return self.ub
+
+    def get_node_count(self):
+        return self.node_count
 
     def set_ub(self, ub):
         self.ub = ub
@@ -199,10 +229,6 @@ def branch_strategy(A, b, bb, node):
     x_partial = np.zeros((A.shape[-1],))
     x_partial[node.get_x1()] = 1
     rc = (1 - node.get_lambd()) @ A
-
-    # print("A @ x_partial", A @ x_partial)
-    # print("b", b)
-    # print("x_partial", x_partial)
     
     # Pick the row with the largest violation given the
     # solution obtained by completing the partial solution
@@ -277,5 +303,49 @@ def branch_strategy2(A, b, bb, node):
              x0=x0, 
              x1=x1 + [j], 
              branch_strategy=branch_strategy2, 
+             lb_strategy=node.get_lb_strategy())    
+    ]
+
+
+def branch_strategy3(A, b, bb, node):
+    x0 = node.get_x0()
+    x1 = node.get_x1()
+    x_partial = np.zeros((A.shape[-1],))
+    x_partial[node.get_x1()] = 1
+    rc = (1 - node.get_lambd()) @ A
+
+    # print("A @ x_partial", A @ x_partial)
+    # print("b", b)
+    # print("x_partial", x_partial)
+    
+    # Pick the row with the largest violation given the
+    # solution obtained by completing the partial solution
+    # of the node by fixing all the remaining variables
+    # to 0.
+    violation = b - (A @ x_partial)
+    r = np.argmax(node.get_lambd())
+    
+    # Columns with fixed values or with a zero entry
+    # on the picked row are not candidates for branching.
+    zero_entry = set(np.where(A[r] == 0)[0])
+    not_candidates = list(set(x0).union(set(x1)).union(zero_entry))
+    
+    # Pick the column with minimum reduced cost
+    rc[not_candidates] = np.inf
+    j = np.argmin(rc)
+    assert not j in not_candidates, (r, rc, x0, x1, A, b)
+
+    return [
+        Node(id=bb.get_new_id(),
+             level=node.get_level() + 1, 
+             x0=x0 + [j], 
+             x1=x1, 
+             branch_strategy=branch_strategy, 
+             lb_strategy=node.get_lb_strategy()),
+        Node(id=bb.get_new_id(),
+             level=node.get_level() + 1, 
+             x0=x0, 
+             x1=x1 + [j], 
+             branch_strategy=branch_strategy, 
              lb_strategy=node.get_lb_strategy())    
     ]

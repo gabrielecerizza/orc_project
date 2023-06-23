@@ -1,41 +1,36 @@
 import numpy as np
 
-from .primal import hall_hochbaum
+from .primal import hall_hochbaum, primal_heur
 from .branch_bound import Node
 from .reduction import column_inclusion, lagr_penalties
 
 
 class BBCallback:
-    def on_preprocess(self, bb, A, b):
+    def on_preprocess(self, bb, A, b, node):
         pass
 
     def on_reduction(self, node, A, ub):
         pass
 
 
-class SingleReductionCallback(BBCallback):
-    def on_preprocess(self, bb, A, b):
-        primal_heur(bb, A, b)
+class PrimalHeurCallback(BBCallback):
+    def __init__(self, step=1, only_root=False):
+        self.step = step
+        self.only_root = only_root
 
+    def on_preprocess(self, bb, A, b, node):
+        if self.only_root:
+            if node.get_level() == 0:
+                primal_heur(bb, A, b, bb.get_ub(), node)
+        elif bb.get_node_count() % self.step == 0:
+            primal_heur(bb, A, b, bb.get_ub(), node)
+
+
+class LagrPenaltiesReductionCallback(BBCallback):
     def on_reduction(self, node, A, ub):
-        # lagr_penalties(node, A, ub)
-        pass
+        lagr_penalties(node, A, ub)
+
 
 class ColumnInclusionCallback(BBCallback):
     def on_reduction(self, node, A, ub):
         column_inclusion(node, A, ub)
-
-
-def primal_heur(bb, A, b):
-    x = hall_hochbaum(A, b)
-    ub = np.sum(A, axis=0) @ x
-    bb.set_ub(ub)
-    bb.set_x_best(x)
-
-    # Add a fictitious best node corresponding to the
-    # primal heuristic solution.
-    x0=np.where(x == 0)[0]
-    x1=np.where(x == 1)[0]
-    n = Node(id=-1, level=-1, x0=x0, x1=x1, 
-             branch_strategy=None, lb_strategy=None)
-    bb.set_best(n)

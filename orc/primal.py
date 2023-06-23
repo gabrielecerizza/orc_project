@@ -5,8 +5,8 @@ from .branch_bound import Node
 EPS = 1e-6
 
 
-def _check_feasibility(A, b, x):
-        assert np.all(A @ x >= b), (A @ x, b)
+def _check_feasibility(A, b, x, method):
+        assert np.all(A @ x >= b), (method, A @ x, b, x)
 
 
 def _build_solution(A, cover):
@@ -15,15 +15,22 @@ def _build_solution(A, cover):
     return x
 
 
-def _find_cover(A, b, method):
-    cover = _inner_find_cover(np.copy(A), np.copy(b), method)
+def _find_cover(A, b, x0, x1, method):
+    cover = _inner_find_cover(np.copy(A), 
+                              np.copy(b), x0, x1, method)
     x = _build_solution(A, cover)
-    _check_feasibility(A, b, x)
+    _check_feasibility(A, b, x, method)
     return x
 
 
-def _inner_find_cover(A, b, method):
-    cover = []
+def _inner_find_cover(A, b, x0, x1, method):
+    cover = [] + x1
+    b = b.astype(np.float32)
+    for j in x1:
+        b -= A[:,j]
+        A[:,j] -= A[:,j]
+    for j in x0:
+        A[:,j] -= A[:,j]
     c = np.sum(A, axis=0)
     match method:
         case "greedy":
@@ -33,15 +40,24 @@ def _inner_find_cover(A, b, method):
                 # since it has the largest ratio between the
                 # sum of the coefficients on the left hand 
                 # side and b.
-                M = [sum(A[i]) / (b_i or EPS)
+                M = [sum(A[i]) / b_i if b_i > 0 else -1
                      for i, b_i in enumerate(b)]
                 i = np.argmax(M)
                 
-                # Pick the column that covers the most.
-                j = np.argmax(A[i])
+                # Pick the column that covers the most and
+                # that is not fixed.
+                a_max = -np.inf
+                j = -1
+                for k in range(A.shape[-1]):
+                    if k not in x0 + x1:
+                        if A[i][k] > a_max:
+                            a_max = A[i][k]
+                            j = k
                 
+                assert j > -1
                 cover.append(j)
-                b = b - A[:,j]
+                x1 += [j]
+                b -= A[:,j]
                 A[:,j] -= A[:,j]
 
         case "dobson":
@@ -57,11 +73,20 @@ def _inner_find_cover(A, b, method):
                 # so, unless some entries of A are
                 # decreased in the first step of the while
                 # loop, all non-zero columns will have the
-                # same ratio. 
-                k = np.argmin(c / np.sum(A2, axis=0))
+                # same ratio.
+                f = c / np.sum(A2, axis=0)
+                f_min = np.inf
+                k = -1
+                for j in range(A.shape[-1]):
+                    if j not in x0 + x1:
+                        if f[j] < f_min:
+                            f_min = f[j]
+                            k = j 
                 
+                assert k > -1
                 cover.append(k)
-                b = b - A[:,k]
+                x1 += [k]
+                b -= A[:,k]
                 A[:,k] -= A[:,k]
 
         case "hall_hochbaum":
@@ -70,28 +95,52 @@ def _inner_find_cover(A, b, method):
                 space = rsum - b
                 
                 f = [1 / (c[j] or EPS) * 
-                     sum([(b[i] * A[i][j]) / (space[i]) 
+                     sum([(b[i] * A[i][j]) / (space[i] or EPS) 
                         for i in np.where(b > 0)[0]]) 
                         for j in range(A.shape[-1])]
 
-                k = np.argmax(f)
+                f_max = -np.inf
+                k = -1
+                for j in range(A.shape[-1]):
+                    if j not in x0 + x1:
+                        if f[j] > f_max:
+                            f_max = f[j]
+                            k = j
+                
+                assert k > -1
                 cover.append(k)
-                b = b - A[:,k]
+                x1 += [k]
+                b -= A[:,k]
                 A[:,k] -= A[:,k]
 
     return cover
 
 
-def greedy(A, b):
-    return _find_cover(A, b, "greedy")
+def greedy(A, b, x0, x1):
+    return _find_cover(A, b, x0, x1, "greedy")
 
 
-def dobson(A, b):
-    return _find_cover(A, b, "dobson")
+def dobson(A, b, x0, x1):
+    return _find_cover(A, b, x0, x1, "dobson")
 
 
-def hall_hochbaum(A, b):
-    return _find_cover(A, b, "hall_hochbaum")
+def hall_hochbaum(A, b, x0, x1):
+    return _find_cover(A, b, x0, x1, "hall_hochbaum")
 
 
-#TODO: hall_hochbaum gets better than dobson the bigger the problem
+def primal_heur(bb, A, b, ub, node):
+    x = hall_hochbaum(
+        A, b, node.get_x0()[:], node.get_x1()[:])
+    new_ub = np.sum(A, axis=0) @ x
+    if new_ub < ub:
+        bb.set_ub(new_ub)
+        bb.set_x_best(x)
+
+        # Add a fictitious best node corresponding to the
+        # primal heuristic solution.
+        x0=np.where(x == 0)[0]
+        x1=np.where(x == 1)[0]
+        n = Node(id=-1, level=-1, x0=x0, x1=x1, 
+                 branch_strategy=None, lb_strategy=None)
+        n.get_val(A)
+        bb.set_best(n)
