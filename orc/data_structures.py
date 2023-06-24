@@ -1,12 +1,12 @@
+import time
 from heapq import heappop, heappush
 
 import numpy as np
 
 
 class Node:
-    def __init__(self, id, branch_strategy, 
-                 lb_strategy, level=0, 
-                 x0=None, x1=None):
+    def __init__(self, id, branch_strategy, lb_strategy, 
+                 level=0, x0=None, x1=None):
         
         # Id used to sort nodes inside the heap
         # when two nodes have the same lb.
@@ -26,25 +26,30 @@ class Node:
         return self.branch_strategy(A, b, bb, self)
 
     def is_leaf(self, A, b):
+        """Return true if the node can be considered 
+        a leaf.
         
-        # If the partial solution is feasible,
-        # then we can fix to 0 all the unassigned
-        # variables to obtain the minimum of the
-        # subtree.
+        If the partial solution is feasible, then we 
+        can fix to 0 all the unassigned variables to 
+        obtain the minimum of the subtree.
+        """
+        
         return self.is_feasible(A, b)
     
     def is_feasible(self, A, b):
+        """Return true if the variables fixed to 1 are 
+        enough to cover all the rows.
+        """
         
-        # True if the variables fixed to 1 are
-        # enough to cover all the rows. 
         x = np.zeros((A.shape[-1],))
         x[self.x1] = 1
         return np.all(A @ x >= b)
     
     def is_infeasible(self, A, b):
+        """Return true if we cannot cover all the rows even
+        if we fixed to 1 all the unassigned variables.
+        """
         
-        # True if we cannot cover all the rows even
-        # if we fixed to 1 all the unassigned variables.
         x = np.ones((A.shape[-1],))
         x[self.x0] = 0
         return np.any(A @ x < b)
@@ -80,14 +85,15 @@ class Node:
         return self.x_lb
     
     def get_lambd(self):
-        return self.lambd
+        # Return a copy to avoid modifications
+        return self.lambd[:]
     
     def get_x0(self):
-        # Return a copy, so that the list is not modified
+        # Return a copy to avoid modifications
         return self.x0[:]
     
     def get_x1(self):
-        # Return a copy, so that the list is not modified
+        # Return a copy to avoid modifications
         return self.x1[:]
     
     def get_num_var(self):
@@ -125,10 +131,15 @@ class Tree:
                  (node.get_lb(), node.get_id(), node))
 
 
+class TimeLimitException(Exception):
+    pass
+
+
 class BranchAndBound:
     def __init__(
             self, branch_strategy, lb_strategy, 
-            callbacks=None, verbose=0):
+            callbacks=None, time_start=None, 
+            time_limit=60 * 5, verbose=0):
         self.tree = Tree(
             Node(0, branch_strategy, lb_strategy))
         self.node_count = 1
@@ -136,9 +147,16 @@ class BranchAndBound:
         self.ub = np.inf
         self.x_best = None
         self.callbacks = callbacks or []
+        self.time_start = time_start
+        self.time_limit = time_limit
         self.verbose = verbose
 
     def search(self, A, b):
+        if self.time_start is not None:
+            elapsed = time.process_time() - self.time_start
+            if elapsed > self.time_limit:
+                raise TimeLimitException
+
         while (not self.tree.is_empty()):
             node = self.tree.remove()
             self.log("search", "removed", str(node))
@@ -154,6 +172,11 @@ class BranchAndBound:
             callback.on_preprocess(self, A, b, node)
 
     def reduction(self, node, A, b):
+        """Attempt to reduce the size of the problem and
+        possibly close the node if the node is revealed
+        to be a leaf or infeasible after reduction.
+        """
+        
         for callback in self.callbacks:
             callback.on_reduction(node, A, self.ub)
             if node.is_leaf(A, b):
@@ -188,9 +211,15 @@ class BranchAndBound:
                          "child infeasible", str(child)) 
                        
     def evaluate_leaf(self, leaf, A):
+        """When the node is a leaf, compute the value
+        of the solution and update the upper bound if
+        it is better than the previous incumbent upper
+        bound.
+        """
+
         leaf_val = leaf.get_val(A)
         if (self.best is None) or \
-            (leaf_val < self.best.get_val(A)):
+            (leaf_val < self.ub):
             self.best = leaf
             self.ub = leaf_val
             x = np.zeros((A.shape[-1],))
@@ -221,131 +250,3 @@ class BranchAndBound:
 
     def set_best(self, node):
         self.best = node
-
-
-def branch_strategy(A, b, bb, node):
-    x0 = node.get_x0()
-    x1 = node.get_x1()
-    x_partial = np.zeros((A.shape[-1],))
-    x_partial[node.get_x1()] = 1
-    rc = (1 - node.get_lambd()) @ A
-    
-    # Pick the row with the largest violation given the
-    # solution obtained by completing the partial solution
-    # of the node by fixing all the remaining variables
-    # to 0.
-    violation = b - (A @ x_partial)
-    r = np.argmax(violation)
-    
-    # Columns with fixed values or with a zero entry
-    # on the picked row are not candidates for branching.
-    zero_entry = set(np.where(A[r] == 0)[0])
-    not_candidates = list(set(x0).union(set(x1)).union(zero_entry))
-    
-    # Pick the column with minimum reduced cost
-    rc[not_candidates] = np.inf
-    j = np.argmin(rc)
-    assert not j in not_candidates, (r, rc, x0, x1, A, b)
-
-    return [
-        Node(id=bb.get_new_id(),
-             level=node.get_level() + 1, 
-             x0=x0 + [j], 
-             x1=x1, 
-             branch_strategy=branch_strategy, 
-             lb_strategy=node.get_lb_strategy()),
-        Node(id=bb.get_new_id(),
-             level=node.get_level() + 1, 
-             x0=x0, 
-             x1=x1 + [j], 
-             branch_strategy=branch_strategy, 
-             lb_strategy=node.get_lb_strategy())    
-    ]
-
-
-def branch_strategy2(A, b, bb, node):
-    x0 = node.get_x0()
-    x1 = node.get_x1()
-    x_partial = np.zeros((A.shape[-1],))
-    x_partial[node.get_x1()] = 1
-    c = np.sum(A, axis=0)
-
-    # print("A @ x_partial", A @ x_partial)
-    # print("b", b)
-    # print("x_partial", x_partial)
-    
-    # Pick the row with the largest violation given the
-    # solution obtained by completing the partial solution
-    # of the node by fixing all the remaining variables
-    # to 0.
-    violation = b - (A @ x_partial)
-    r = np.argmax(violation)
-    
-    # Columns with fixed values or with a zero entry
-    # on the picked row are not candidates for branching.
-    zero_entry = set(np.where(A[r] == 0)[0])
-    not_candidates = list(set(x0).union(set(x1)).union(zero_entry))
-    
-    # Pick the column with minimum reduced cost
-    c[not_candidates] = np.inf
-    j = np.argmin(c)
-    assert not j in not_candidates, (r, c, x0, x1, A, b)
-
-    return [
-        Node(id=bb.get_new_id(),
-             level=node.get_level() + 1, 
-             x0=x0 + [j], 
-             x1=x1, 
-             branch_strategy=branch_strategy2, 
-             lb_strategy=node.get_lb_strategy()),
-        Node(id=bb.get_new_id(),
-             level=node.get_level() + 1, 
-             x0=x0, 
-             x1=x1 + [j], 
-             branch_strategy=branch_strategy2, 
-             lb_strategy=node.get_lb_strategy())    
-    ]
-
-
-def branch_strategy3(A, b, bb, node):
-    x0 = node.get_x0()
-    x1 = node.get_x1()
-    x_partial = np.zeros((A.shape[-1],))
-    x_partial[node.get_x1()] = 1
-    rc = (1 - node.get_lambd()) @ A
-
-    # print("A @ x_partial", A @ x_partial)
-    # print("b", b)
-    # print("x_partial", x_partial)
-    
-    # Pick the row with the largest violation given the
-    # solution obtained by completing the partial solution
-    # of the node by fixing all the remaining variables
-    # to 0.
-    violation = b - (A @ x_partial)
-    r = np.argmax(node.get_lambd())
-    
-    # Columns with fixed values or with a zero entry
-    # on the picked row are not candidates for branching.
-    zero_entry = set(np.where(A[r] == 0)[0])
-    not_candidates = list(set(x0).union(set(x1)).union(zero_entry))
-    
-    # Pick the column with minimum reduced cost
-    rc[not_candidates] = np.inf
-    j = np.argmin(rc)
-    assert not j in not_candidates, (r, rc, x0, x1, A, b)
-
-    return [
-        Node(id=bb.get_new_id(),
-             level=node.get_level() + 1, 
-             x0=x0 + [j], 
-             x1=x1, 
-             branch_strategy=branch_strategy, 
-             lb_strategy=node.get_lb_strategy()),
-        Node(id=bb.get_new_id(),
-             level=node.get_level() + 1, 
-             x0=x0, 
-             x1=x1 + [j], 
-             branch_strategy=branch_strategy, 
-             lb_strategy=node.get_lb_strategy())    
-    ]

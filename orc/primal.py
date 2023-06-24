@@ -1,6 +1,6 @@
 import numpy as np
 
-from .branch_bound import Node
+from .data_structures import Node
 
 EPS = 1e-6
 
@@ -65,7 +65,7 @@ def _inner_find_cover(A, b, x0, x1, method):
                 A = np.minimum(A.T, b).T
 
                 # To avoid division by zero, we copy
-                # A and replace zero with a small epsilon
+                # A and replace zero with a small epsilon.
                 A2 = np.copy(A).astype(np.float32)
                 A2[A2 == 0] = EPS
 

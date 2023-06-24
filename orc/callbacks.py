@@ -1,19 +1,54 @@
-import numpy as np
+from abc import ABC
 
-from .primal import hall_hochbaum, primal_heur
-from .branch_bound import Node
+from .primal import primal_heur
 from .reduction import column_inclusion, lagr_penalties
 
 
-class BBCallback:
+class BBCallback(ABC):
+    """Callback abstract class for the BranchAndBound
+    data structure.
+    """
     def on_preprocess(self, bb, A, b, node):
+        """Called immediately after a node is removed 
+        from the tree, before reduction and branching. 
+        
+        Parameters
+        ----------
+        bb : BranchAndBound
+            Branch-and-bound data structure.
+
+        A : np.ndarray
+            Matrix of the left-hand side of the problem.
+
+        b : np.ndarray
+            Array of the right-hand side of the problem.
+
+        node : Node
+            Current node.
+        """
         pass
 
     def on_reduction(self, node, A, ub):
+        """Called immediately before branching. 
+        
+        Parameters
+        ----------
+        node : Node
+            Current node.
+
+        A : np.ndarray
+            Matrix of the left-hand side of the problem.
+
+        ub : int
+            Current incumbent upper bound.
+        """
         pass
 
 
 class PrimalHeurCallback(BBCallback):
+    """Callback computing a new primal heuristic upper
+    bound every time a node is removed from the tree.
+    """
     def __init__(self, step=1, only_root=False):
         self.step = step
         self.only_root = only_root
@@ -27,10 +62,16 @@ class PrimalHeurCallback(BBCallback):
 
 
 class LagrPenaltiesReductionCallback(BBCallback):
+    """Callback performing problem reduction using
+    the Lagrangean penalties method.
+    """
     def on_reduction(self, node, A, ub):
         lagr_penalties(node, A, ub)
 
 
 class ColumnInclusionCallback(BBCallback):
+    """Callback performing problem reduction using
+    the column inclusion method.
+    """
     def on_reduction(self, node, A, ub):
         column_inclusion(node, A, ub)

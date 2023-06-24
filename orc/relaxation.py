@@ -5,10 +5,68 @@ from gurobipy import GRB
 
 def subgrad_opt(
         A, b, ub, x0, x1, node=None, lambd=None,
-        f=2, k=5, eps=0.005, omega=100):
+        f=2, k=5, eps=0.005, omega=200):
+    """Return the lower bound obtained by determining
+    the Lagrangean multipliers of the Lagrangean relaxation
+    of a problem by way of a subgradient optimization algorithm.
+
+    The algorithm also sets the Lagrangean multipliers values 
+    inside the node.
+    
+    Parameters
+    ----------
+    A : np.ndarray
+        Matrix of the left-hand side of the problem.
+
+    b : np.ndarray
+        Array of the right-hand side of the problem.
+
+    ub : int
+        Value of the incumbent upper bound.
+
+    x0 : list of int
+        Indices of variables fixed to 0 in the current node.
+
+    x1 : list of int
+        Indices of variables fixed to 1 in the current node.
+
+    node : Node
+        Current node of the branch-and-bound data structure.
+
+    lambd : np.ndarray
+        Optional starting Lagrangean multipliers values.
+        When this parameter is None, a vector full of zero
+        values is used as starting point.
+
+    f : float
+        Parameter of the subgradient optimization algorithm.
+
+    k : int
+        Number of iterations without change in the lower bound
+        after which the value of f is halved.
+
+    eps : float
+        Value of f under which the algorithm terminates.
+
+    omega : int
+        Maximum number of iterations.
+
+    Returns
+    -------
+    lb : int
+        Value of the computed lower bound.
+    """
     
     lambd = np.zeros(A.shape[0]) if lambd is None else lambd
-    lb = -np.inf
+    lb = 0
+
+    # When the upper bound is infinite, the computation
+    # of sigma below will return an invalid value. 
+    # Therefore, we set the upper bound as the total
+    # cost of the columns, which corresponds to the value
+    # of a feasible solution when the problem is feasible.
+    if ub == np.inf:
+        ub = np.sum(A)
 
     unchanged = 0
     t = 0
@@ -34,6 +92,7 @@ def subgrad_opt(
         sigma = f * (ub - lb) / np.linalg.norm(g) ** 2
         lambd = np.maximum(
             np.zeros_like(lambd), lambd + sigma * g)
+
         t += 1
         if f < eps or t > omega:
             break

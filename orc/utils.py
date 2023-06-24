@@ -4,9 +4,28 @@ np.random.seed(42)
 
 
 def generate_problem(m, n, density=0.5):
-    """Generate a covering problem with m rows,
-    n columns and a percentage of non-zero columns in 
-    each row equal to density.
+    """Generate a covering problem with m rows, n columns 
+    and a percentage of non-zero columns in each row equal 
+    to density.
+
+    Parameters
+    ----------
+    m : int
+        Number of rows for the generated problem.
+
+    n : int
+        Number of columns for the generated problem.
+
+    density : float
+        Percentage of non-zero columns in each row.
+
+    Returns
+    -------
+    A : np.ndarray
+        Matrix of the left-hand side of the problem.
+
+    b : np.ndarray
+        Array of the right-hand side of the problem.
     """
 
     A = []
@@ -16,21 +35,21 @@ def generate_problem(m, n, density=0.5):
         b.append(b_i)
 
         # Determine the sum of values to be place on the
-        # left hand side of each constraint
+        # left-hand side of each constraint.
         lhs_sum = np.random.randint(
             int(b_i * 2), int(b_i * 5))
         
         num_nonzero_cols = int(n * density)
         
         # Determine the columns that will have a non-zero
-        # entry
+        # entry.
         indices = np.random.choice(
             n, num_nonzero_cols, replace=False)
         
         a_i = np.zeros((n, )) 
         
-        # Initialize with ones to make sure
-        # that each entry is greater than zero
+        # Initialize with ones to make sure that each entry 
+        # is greater than zero.
         sub_a_i = np.ones((num_nonzero_cols, ))
         
         sum_left = lhs_sum - len(sub_a_i)
@@ -42,5 +61,8 @@ def generate_problem(m, n, density=0.5):
     
     A = np.array(A)
     b = np.array(b)
+
+    # Make sure that the problem is feasible
     assert np.all(np.sum(A, axis=-1) >= b), (A, b)
+    
     return A, b
