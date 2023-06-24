@@ -26,11 +26,15 @@ def _find_cover(A, b, x0, x1, method):
 def _inner_find_cover(A, b, x0, x1, method):
     cover = [] + x1
     b = b.astype(np.float32)
+    
+    # Adjust the values of A and b according
+    # to the variables that are already fixed.
     for j in x1:
         b -= A[:,j]
         A[:,j] -= A[:,j]
     for j in x0:
         A[:,j] -= A[:,j]
+    
     c = np.sum(A, axis=0)
     match method:
         case "greedy":
@@ -38,7 +42,7 @@ def _inner_find_cover(A, b, x0, x1, method):
             
                 # Pick the row that is easiest to cover,
                 # since it has the largest ratio between the
-                # sum of the coefficients on the left hand 
+                # sum of the coefficients on the left-hand 
                 # side and b.
                 M = [sum(A[i]) / b_i if b_i > 0 else -1
                      for i, b_i in enumerate(b)]
@@ -117,18 +121,140 @@ def _inner_find_cover(A, b, x0, x1, method):
 
 
 def greedy(A, b, x0, x1):
+    """Return a feasible solution for the problem described
+    by A and b, keeping into account the variables already
+    fixed to 0 and to 1.
+
+    This method selects greedily the variables of the cover,
+    picking the row with the large ratio between left-hand
+    side and right-hand side and then picking the column
+    with the largest coefficient.
+
+    Parameters
+    ----------
+    A : np.ndarray
+        Matrix of the left-hand side of the problem.
+
+    b : np.ndarray
+        Array of the right-hand side of the problem.
+
+    x0 : list of int
+        Indices of variables fixed to 0 in the current node.
+
+    x1 : list of int
+        Indices of variables fixed to 1 in the current node.
+
+    Returns
+    -------
+    solution : list of int
+        The vector of variables fixed to 0 and 1 corresponding
+        to a feasible solution.
+    """
     return _find_cover(A, b, x0, x1, "greedy")
 
 
 def dobson(A, b, x0, x1):
+    """Return a feasible solution for the problem described
+    by A and b, keeping into account the variables already
+    fixed to 0 and to 1.
+
+    This method is adapted from the article by Dobson [1].
+
+    Parameters
+    ----------
+    A : np.ndarray
+        Matrix of the left-hand side of the problem.
+
+    b : np.ndarray
+        Array of the right-hand side of the problem.
+
+    x0 : list of int
+        Indices of variables fixed to 0 in the current node.
+
+    x1 : list of int
+        Indices of variables fixed to 1 in the current node.
+
+    Returns
+    -------
+    solution : list of int
+        The vector of variables fixed to 0 and 1 corresponding
+        to a feasible solution.
+
+    References
+    ----------
+    [1] Dobson, Gregory. “Worst-Case Analysis of Greedy 
+    Heuristics for Integer Programming with Nonnegative Data.” 
+    Math. Oper. Res. 7 (1982): 515-531.
+    """
     return _find_cover(A, b, x0, x1, "dobson")
 
 
 def hall_hochbaum(A, b, x0, x1):
+    """Return a feasible solution for the problem described
+    by A and b, keeping into account the variables already
+    fixed to 0 and to 1.
+
+    This method is adapted from the article by Hall and
+    Hochbaum [1].
+
+    Parameters
+    ----------
+    A : np.ndarray
+        Matrix of the left-hand side of the problem.
+
+    b : np.ndarray
+        Array of the right-hand side of the problem.
+
+    x0 : list of int
+        Indices of variables fixed to 0 in the current node.
+
+    x1 : list of int
+        Indices of variables fixed to 1 in the current node.
+
+    Returns
+    -------
+    solution : list of int
+        The vector of variables fixed to 0 and 1 corresponding
+        to a feasible solution.
+
+    References
+    ----------
+    [1] Nicholas G. Hall, Dorit S. Hochbaum, The multicovering 
+    problem, European Journal of Operational Research, 
+    Volume 62, Issue 3, 1992, Pages 323-339.
+    """
     return _find_cover(A, b, x0, x1, "hall_hochbaum")
 
 
 def primal_heur(bb, A, b, ub, node):
+    """Determine a primal feasible solution to the problem
+    described by A and b by way of an heuristic adapted
+    from [1] and update the incumbent upper bound of the
+    branch-and-bound data structure if needed.
+    
+    Parameters
+    ----------
+    bb : BranchAndBound
+        Branch-and-bound data structure.
+
+    A : np.ndarray
+        Matrix of the left-hand side of the problem.
+
+    b : np.ndarray
+        Array of the right-hand side of the problem.
+
+    ub : int
+        Current incumbent upper bound.
+
+    node : Node
+        Current node in the branch-and-bound data structure.
+
+    References
+    ----------
+    [1] Nicholas G. Hall, Dorit S. Hochbaum, The multicovering 
+    problem, European Journal of Operational Research, 
+    Volume 62, Issue 3, 1992, Pages 323-339.
+    """
     x = hall_hochbaum(
         A, b, node.get_x0()[:], node.get_x1()[:])
     new_ub = np.sum(A, axis=0) @ x

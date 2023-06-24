@@ -56,7 +56,6 @@ def subgrad_opt(
     lb : int
         Value of the computed lower bound.
     """
-    
     lambd = np.zeros(A.shape[0]) if lambd is None else lambd
     lb = 0
 
@@ -105,6 +104,34 @@ def subgrad_opt(
 
 
 def dual_lb(A, b, ub, x0, x1, node=None):
+    """Return the lower bound obtained by solving the dual 
+    of the linear relaxation of the problem.
+    
+    Parameters
+    ----------
+    A : np.ndarray
+        Matrix of the left-hand side of the problem.
+
+    b : np.ndarray
+        Array of the right-hand side of the problem.
+
+    ub : int
+        Value of the incumbent upper bound.
+
+    x0 : list of int
+        Indices of variables fixed to 0 in the current node.
+
+    x1 : list of int
+        Indices of variables fixed to 1 in the current node.
+
+    node : Node
+        Current node of the branch-and-bound data structure.
+
+    Returns
+    -------
+    lb : int
+        Value of the computed lower bound.
+    """
     c = np.sum(A, axis=0)
     db = b.astype(np.float32)[:]
     for j in x1:
@@ -133,6 +160,11 @@ def dual_lb(A, b, ub, x0, x1, node=None):
     x[x1] = 1
     
     s = sum([c[j] for j in x1])
+
+    # Check that the lower bound is identical to the
+    # lower bound we would obtain by plugging the dual
+    # variables into the Lagrangean relaxation objective
+    # function as Lagrangean multipliers.
     assert np.isclose(db @ lambd + s, rc @ x + lambd @ b), \
         (db @ lambd + s, rc @ x + lambd @ b)
     lb = rc @ x + lambd @ b
@@ -141,6 +173,34 @@ def dual_lb(A, b, ub, x0, x1, node=None):
 
 
 def lp_rel(A, b, ub, x0, x1, node):
+    """Return the lower bound obtained by solving the 
+    linear relaxation of the problem.
+    
+    Parameters
+    ----------
+    A : np.ndarray
+        Matrix of the left-hand side of the problem.
+
+    b : np.ndarray
+        Array of the right-hand side of the problem.
+
+    ub : int
+        Value of the incumbent upper bound.
+
+    x0 : list of int
+        Indices of variables fixed to 0 in the current node.
+
+    x1 : list of int
+        Indices of variables fixed to 1 in the current node.
+
+    node : Node
+        Current node of the branch-and-bound data structure.
+
+    Returns
+    -------
+    lb : int
+        Value of the computed lower bound.
+    """
     c = np.sum(A, axis=0)
     m = gp.Model("lp_rel")
     x = m.addMVar(A.shape[-1], lb=0, ub=1, name="x")

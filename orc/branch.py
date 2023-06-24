@@ -29,7 +29,7 @@ def branch_reduced_costs(A, b, bb, node):
 
     Returns
     -------
-    nodes: list of Node
+    nodes : list of Node
         The two children nodes.
     """
     x0 = node.get_x0()
@@ -97,7 +97,7 @@ def branch_lp(A, b, bb, node):
 
     Returns
     -------
-    nodes: list of Node
+    nodes : list of Node
         The two children nodes.
     """
     x0 = node.get_x0()
@@ -166,7 +166,7 @@ def branch_beasley(A, b, bb, node):
 
     Returns
     -------
-    nodes: list of Node
+    nodes : list of Node
         The two children nodes.
 
     References
@@ -182,7 +182,6 @@ def branch_beasley(A, b, bb, node):
     x_partial[node.get_x1()] = 1
     rc = (1 - lambd) @ A
 
-    
     # Pick the uncovered row corresponding to the Lagrangean
     # multiplier with the largest value.
     uncovered_rows = np.where(b > (A @ x_partial))[0]

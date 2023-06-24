@@ -28,7 +28,7 @@ class BBCallback(ABC):
         """
         pass
 
-    def on_reduction(self, node, A, ub):
+    def on_reduction(self, node, A, b, ub):
         """Called immediately before branching. 
         
         Parameters
@@ -39,10 +39,18 @@ class BBCallback(ABC):
         A : np.ndarray
             Matrix of the left-hand side of the problem.
 
+        b : np.ndarray
+            Array of the right-hand side of the problem.
+
         ub : int
             Current incumbent upper bound.
+
+        Returns
+        -------
+        reduced : bool
+            True if the problem has been reduced.
         """
-        pass
+        return False
 
 
 class PrimalHeurCallback(BBCallback):
@@ -65,7 +73,7 @@ class LagrPenaltiesReductionCallback(BBCallback):
     """Callback performing problem reduction using
     the Lagrangean penalties method.
     """
-    def on_reduction(self, node, A, ub):
+    def on_reduction(self, node, A, b, ub):
         lagr_penalties(node, A, ub)
 
 
@@ -73,5 +81,5 @@ class ColumnInclusionCallback(BBCallback):
     """Callback performing problem reduction using
     the column inclusion method.
     """
-    def on_reduction(self, node, A, ub):
-        column_inclusion(node, A, ub)
+    def on_reduction(self, node, A, b, ub):
+        column_inclusion(node, A, b)

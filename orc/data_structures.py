@@ -5,6 +5,28 @@ import numpy as np
 
 
 class Node:
+    """Node of a tree in a branch-and-bound data structure.
+
+    Parameters
+    ----------
+    id : int
+        A unique identifier for the node.
+
+    branch_strategy : func
+        Function called when generating children.
+
+    lb_strategy : func
+        Function called to compute the lower bound.
+
+    level : int
+        Level of the node in the tree.
+
+    x0 : list of int
+        Indices of variables fixed to 0.
+
+    x1 : list of int
+        Indices of variables fixed to 1.
+    """
     def __init__(self, id, branch_strategy, lb_strategy, 
                  level=0, x0=None, x1=None):
         
@@ -117,7 +139,19 @@ class Node:
     
 
 class Tree:
+    """Tree containing the nodes used in a 
+    branch-and-bound data structure.
+
+    Parameters
+    ----------
+    root : Node
+        The root of the tree.
+    """
     def __init__(self, root):
+        # Nodes are added to the open list as tuples
+        # (node lower bound, id, node). The list is a heap
+        # that returns the node with the lowest lower bound
+        # upon calling pop.
         self.open_list = [(-np.inf, 0, root)]
 
     def is_empty(self):
@@ -132,10 +166,38 @@ class Tree:
 
 
 class TimeLimitException(Exception):
+    """Exception raised when the runtime of the 
+    branch-and-bound algorithm has exceeded a given
+    threshold.
+    """
     pass
 
 
 class BranchAndBound:
+    """Branch-and-bound data structure to solve a MIP problem.
+
+    Parameters
+    ----------
+    branch_strategy : func
+        Function called when generating children from a node.
+
+    lb_strategy : func
+        Function called to compute the lower bound.
+
+    callbacks : list of func
+        List of functions with callback methods called
+        during the execution of the algorithm.
+
+    time_start : float
+        Starting time of the execution of the algorithm.
+
+    time_limit : int
+        Maximum number of seconds allowed for the
+        execution of the algorithm.
+
+    verbose : int
+        Level of logging. When above 0, logs are printed.
+    """
     def __init__(
             self, branch_strategy, lb_strategy, 
             callbacks=None, time_start=None, 
@@ -160,14 +222,16 @@ class BranchAndBound:
         while (not self.tree.is_empty()):
             node = self.tree.remove()
             self.log("search", "removed", str(node))
-            self.preprocess(A, b, node)
+            self.preprocess(np.copy(A), np.copy(b), node)
             self.log("search", "preprocessed", str(node))
             if node.get_level() == 0:
-                node.compute_lb(A, b, self.ub)
+                node.compute_lb(np.copy(A), np.copy(b), self.ub)
                 self.log("search", "root lb", str(node))
             self.branch(node, A, b)
             
     def preprocess(self, A, b, node):
+        """Preprocess the node before branching.
+        """
         for callback in self.callbacks:
             callback.on_preprocess(self, A, b, node)
 
@@ -176,31 +240,40 @@ class BranchAndBound:
         possibly close the node if the node is revealed
         to be a leaf or infeasible after reduction.
         """
-        
-        for callback in self.callbacks:
-            callback.on_reduction(node, A, self.ub)
-            if node.is_leaf(A, b):
-                self.evaluate_leaf(node, A)
-                self.log("reduction", "leaf", str(node))
-                return True
-            elif node.is_infeasible(A, b):
-                self.log("reduction", "infeasible", str(node))
-                return True
+
+        # Keep looping as long as a callback has reduced
+        # the problem, to see if other callbacks can further
+        # reduce the problem.
+        while (True):
+            reduced = False
+            for callback in self.callbacks:
+                reduced = reduced or callback.on_reduction(
+                    node, A, b, self.ub)
+                if node.is_leaf(A, b):
+                    self.evaluate_leaf(node, A)
+                    self.log("reduction", "leaf", str(node))
+                    return True
+                elif node.is_infeasible(A, b):
+                    self.log("reduction", "infeasible", str(node))
+                    return True
+            if (not reduced):
+                break
         return False
 
     def branch(self, node, A, b):
         self.log("branch", "entered", str(node))
-        closed = self.reduction(node, A, b)
+        closed = self.reduction(node, np.copy(A), np.copy(b))
         if closed:
             self.log("branch", "closed", str(node))
             return
-        for child in node.generate_children(A, b, self):
+        for child in node.generate_children(np.copy(A), 
+                                            np.copy(b), self):
             self.log("branch", "generated child", str(child))
             if child.is_leaf(A, b):
                 self.log("branch", "child is leaf", str(child))
                 self.evaluate_leaf(child, A)
             elif not child.is_infeasible(A, b):
-                child.compute_lb(A, b, self.ub)
+                child.compute_lb(np.copy(A), np.copy(b), self.ub)
                 self.log("branch", "child lb", str(child))
                 if child.get_lb() < self.ub:
                     self.log("branch", 
@@ -216,7 +289,6 @@ class BranchAndBound:
         it is better than the previous incumbent upper
         bound.
         """
-
         leaf_val = leaf.get_val(A)
         if (self.best is None) or \
             (leaf_val < self.ub):
