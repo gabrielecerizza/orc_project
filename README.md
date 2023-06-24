@@ -1,0 +1,2 @@
+# The Ticket Restaurant Assignment Problem - Operational Research Complements Project
+Project repository for the Operational Research Complements course of Università degli Studi di Milano (UNIMI), academic year 2022/2023.

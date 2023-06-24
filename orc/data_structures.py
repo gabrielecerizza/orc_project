@@ -222,18 +222,19 @@ class BranchAndBound:
         while (not self.tree.is_empty()):
             node = self.tree.remove()
             self.log("search", "removed", str(node))
-            self.preprocess(np.copy(A), np.copy(b), node)
-            self.log("search", "preprocessed", str(node))
+            self.run_heuristics(np.copy(A), np.copy(b), node)
+            self.log("search", "ran heuristics", str(node))
             if node.get_level() == 0:
                 node.compute_lb(np.copy(A), np.copy(b), self.ub)
                 self.log("search", "root lb", str(node))
             self.branch(node, A, b)
             
-    def preprocess(self, A, b, node):
-        """Preprocess the node before branching.
+    def run_heuristics(self, A, b, node):
+        """Run heuristics to find new upper bounds 
+        before branching.
         """
         for callback in self.callbacks:
-            callback.on_preprocess(self, A, b, node)
+            callback.on_run_heuristics(self, A, b, node)
 
     def reduction(self, node, A, b):
         """Attempt to reduce the size of the problem and

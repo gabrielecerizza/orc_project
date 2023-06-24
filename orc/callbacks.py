@@ -8,7 +8,7 @@ class BBCallback(ABC):
     """Callback abstract class for the BranchAndBound
     data structure.
     """
-    def on_preprocess(self, bb, A, b, node):
+    def on_run_heuristics(self, bb, A, b, node):
         """Called immediately after a node is removed 
         from the tree, before reduction and branching. 
         
@@ -61,7 +61,7 @@ class PrimalHeurCallback(BBCallback):
         self.step = step
         self.only_root = only_root
 
-    def on_preprocess(self, bb, A, b, node):
+    def on_run_heuristics(self, bb, A, b, node):
         if self.only_root:
             if node.get_level() == 0:
                 primal_heur(bb, A, b, bb.get_ub(), node)
