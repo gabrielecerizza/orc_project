@@ -131,7 +131,7 @@ class Node:
         self.lambd = lambd
     
     def __str__(self):
-        return f"Node(level={self.level}, " + \
+        return f"Node(level={self.level}, id={self.id}, " + \
             f"x0={self.x0}, x1={self.x1}, " + \
             f"val={self.val}, " + \
             f"lb={self.lb}, x_lb={self.x_lb}, " + \
@@ -196,7 +196,8 @@ class BranchAndBound:
         execution of the algorithm.
 
     verbose : int
-        Level of logging. When above 0, logs are printed.
+        Level of logging. When 1, logs are printed. When 2,
+        logs are written on a file.
     """
     def __init__(
             self, branch_strategy, lb_strategy, 
@@ -214,12 +215,11 @@ class BranchAndBound:
         self.verbose = verbose
 
     def search(self, A, b):
-        if self.time_start is not None:
-            elapsed = time.process_time() - self.time_start
-            if elapsed > self.time_limit:
-                raise TimeLimitException
-
         while (not self.tree.is_empty()):
+            if self.time_start is not None:
+                elapsed = time.process_time() - self.time_start
+                if elapsed > self.time_limit:
+                    raise TimeLimitException
             node = self.tree.remove()
             self.log("search", "removed", str(node))
             self.run_heuristics(np.copy(A), np.copy(b), node)
@@ -300,9 +300,12 @@ class BranchAndBound:
             self.x_best = x
 
     def log(self, method, event, *args):
-        l = f"[{method}]: {event}, {args}"
-        if self.verbose > 0:
+        l = f"[{method}]: {event}, {args}\n"
+        if self.verbose == 1:
             print(l)
+        elif self.verbose == 2:
+            with open("logs/log.txt", "a") as f:
+                f.write(l)
 
     def get_new_id(self):
         id = self.node_count

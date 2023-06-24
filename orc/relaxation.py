@@ -174,7 +174,7 @@ def dual_lb(A, b, ub, x0, x1, node=None):
 
 def lp_rel(A, b, ub, x0, x1, node):
     """Return the lower bound obtained by solving the 
-    linear relaxation of the problem.
+    linear programming relaxation of the problem.
     
     Parameters
     ----------
