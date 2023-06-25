@@ -46,7 +46,8 @@ def subgrad_opt(
         after which the value of f is halved.
 
     eps : float
-        Value of f under which the algorithm terminates.
+        Value of step length (sigma) under which the algorithm 
+        terminates.
 
     omega : int
         Maximum number of iterations.
@@ -93,7 +94,7 @@ def subgrad_opt(
             np.zeros_like(lambd), lambd + sigma * g)
 
         t += 1
-        if f < eps or t > omega:
+        if sigma < eps or t > omega:
             break
     
     if node is not None:

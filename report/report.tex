@@ -12,13 +12,16 @@
 
 \renewcommand\UrlFont{\color{blue}\rmfamily}
 \SetKwInput{KwHyperparameters}{Hyperparameters}
+\SetKwInput{KwInput}{Input}
+\SetKwInput{KwOutput}{Output}
+\SetKwComment{Comment}{/* }{ */}
 \DeclareMathOperator{\sgn}{sgn}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
 \begin{document}
 
 \title{
-  The Ticket Restaurant Assignment Problem
+  A Branch-and-Bound Algorithm for the Ticket Restaurant Assignment Problem
 }
 \author{Gabriele Cerizza}
 \authorrunning{G. Cerizza}
@@ -32,21 +35,22 @@
 \section*{Introduction}
 \label{sec:introduction}
 
-In this report we detail the results of our experiments on the ticket restaurant assignment problem, pursuant to the project specifications set out for the Operational Research Complements course of the Università degli Studi di Milano\footnote{\url{https://homes.di.unimi.it/righini/Didattica/ComplementiRicercaOperativa/ComplementiRicercaOperativa.htm}}. 
+In this report we detail a branch-and-bound exact method based on Lagrangean relaxation to solve the ticket restaurant assignment problem (TRAP), pursuant to the project specifications set out for the Operational Research Complements course of the Università degli Studi di Milano\footnote{\url{https://homes.di.unimi.it/righini/Didattica/ComplementiRicercaOperativa/ComplementiRicercaOperativa.htm}}. 
 
 In Section~\ref{sec:dataset} we illustrate the dataset used in the experiments. In Section~\ref{sec:algorithm} we briefly describe the algorithm and its implementation. In Section~\ref{sec:experiments} we show the results of our experiments and provide comments on them. Finally, Section~\ref{sec:conclusions} contains our concluding remarks. 
 
 \section{Ticket Restaurant Assignment Problem}
 \label{sec:problem}
 
+In this section we define the TRAP (Section~\ref{subsec:problem:definition}), we formalize it as a mathematical programming problem (Section~\ref{subsec:problem:formalization}) and we examine the relevant literature (Section~\ref{subsec:problem:related_works}).
+
 \subsection{Definition}
 \label{subsec:problem:definition}
 
-The ticket restaurant assignment problem (TRAP) is defined as follows.
-A ticket company (TC) possesses two kinds of restaurant tickets: the low-profit tickets and the high-profit tickets. TC gives a certain amount of tickets to customer companies (CC). Each CC receives only one kind of tickets. Each CC has different sets of employees and each set uses the tickets to buy meals in a specific restaurant.  
+The TRAP is defined as follows. A ticket company (TC) possesses two kinds of restaurant tickets: the low-profit tickets and the high-profit tickets. TC gives a certain amount of tickets to customer companies (CC). Each CC receives only one kind of tickets. Each CC has different sets of employees and each set uses the tickets to buy meals in a specific restaurant.  
 
 For each restaurant with which TC has a deal, a given ratio between low-profit and high-profit tickets must be observed. 
-TC must maximize the profit while complying with this constraint. Thus, maximizing the profit amounts to minimizing the number of low-profit tickets while ensuring that a given amount of low-profit tickets is assigned for each considered restaurant.
+The TC must maximize the profit while complying with this constraint. Thus, maximizing the profit amounts to minimizing the number of low-profit tickets while ensuring that a given amount of low-profit tickets is assigned for each considered restaurant.
 
 \subsection{Formalization}
 \label{subsec:problem:formalization}
@@ -57,9 +61,9 @@ Let $I = \{1,\dots,m\}$ be a set of restaurants, $J = \{1,\dots,n\}$ be a set of
   &\text{subject to}  &       & \sum_{j \in J} a_{ij} x_j \ge b_i & \qquad & i = 1,\dots,m \, , \notag\\
   &                   &       & x_j \in \{0,1\}  &\qquad& j = 1,\dots,n \, , \notag
 \end{alignat}
-where each binary variable $x_j$ indicates whether customer company $j$ is assigned low-profit tickets.
+where each binary variable $x_j$ indicates whether customer company $j$ is assigned low-profit tickets. We define a cover a vector $x$ such that $Ax \ge b$.
 
-From (\ref{eq:primal}), the following Lagrangean relaxation is obtained:
+From (\ref{eq:primal}), the following Lagrangean relaxation (LR) is obtained:
 \begin{alignat}{3}
   &\min & \quad & z_{\text{LR}} = \sum_{j \in J} \left( \sum_{i \in I} (1 - \lambda_i) a_{ij} \right) x_j + \sum_{i \in I} \lambda_i b_i \label{eq:lagrangean}\\
   &\text{subject to}  &       & x_j \in \{0,1\} & \qquad & j = 1,\dots,n \, , \notag\\
@@ -67,50 +71,111 @@ From (\ref{eq:primal}), the following Lagrangean relaxation is obtained:
 \end{alignat}
 where $\lambda_i$ are the Lagrangean multipliers.
 
-Finally, the dual of the linear programming relaxation of (\ref{eq:primal}) is:
+Finally, the dual of the linear programming (LP) relaxation of (\ref{eq:primal}) is:
 \begin{alignat}{3}
   &\max & \quad & w = \sum_{i \in I} b_i y_i \label{eq:dual}\\
   &\text{subject to}  &       & \sum_{i \in I} a_{ij} y_i \le c_j & \qquad & j = 1,\dots,n \, , \notag\\
   &                   &       & y_i \ge 0  &\qquad& i = 1,\dots,m \, , \notag
 \end{alignat}
-where $c_j = \sum_{i \in I} a_{ij}$ for all $j \in J$.
+where $c_j = \sum_{i \in I} a_{ij}$ for all $j \in J$. The dual of the LP relaxation may be exploited to find optimal Lagrangean multipliers (see Section~\ref{subsec:branch-bound:lb}).
+
+The TRAP is a generalization of the set covering problem (SCP), as explained in the following section. The SCP is NP-hard~\cite{caprara-2000-algorithms}, hence so is the TRAP.
 
 \subsection{Related Works}
 \label{subsec:problem:related_works}
 
-The problem at hand is equivalent to the set covering problem (SCP) when matrix $A$ is binary and $b$ is an all-ones vector. The SCP has been treated extensively in literature and many of the ideas developed within that context can be leveraged to solve the TRAP. For the SCP, both exact and heuristic algorithms have been devised (see the survey in \cite{caprara-2000-algorithms}). We will focus only on exact algorithms for our problem.
+The problem at hand is equivalent to the SCP when $A$ is a binary matrix and $b$ is an all-ones vector. The SCP has been treated extensively in literature and many of the ideas developed within that context can be leveraged to solve the TRAP. For the SCP, both exact and heuristic algorithms have been devised (see the survey in~\cite{caprara-2000-algorithms}). We focus only on exact algorithms for our problem. 
 
-A problem more closely related to the TRAP is the one called multicovering problem (MCP) \cite{hall-hochbaum-1992-multicovering}, defined as follows:
+% However, we stress that large-scale problem instances involving millions of variables and thousands of constraints may be tackled only by heuristic approaches, as observed in~\cite{ceria-1998-lagrangian,caprara-1999-lagrangian}.
+
+The following works in the field of SCP are of particular interest to us. Balas and Ho~\cite{balas-ho-2009-set-covering} adopted a branch-and-cut procedure, comprising a primal heuristic to find upper bounds and subgradient optimization to find lower bounds.
+Beasley~\cite{beasley-1987-algorithm} adopted a branch-and-bound procedure, computing upper bounds with a greedy heuristic, computing lower bounds with dual ascent and subgradient optimization, and devising a number of problem reduction techniques.
+Balas and Carrera~\cite{balas-carrera-1996-dynamic} adopted a dynamic subgradient-based branch-and-bound procedure to solve the SCP, additionally employing variable fixing techniques and heuristics to obtain upper bounds.
+
+We fashioned our branch-and-bound procedure over the algorithms described in these works, adapting their solutions to account for the peculiarities of the TRAP. In particular, we note that most of the preprocessing techniques exploited for the SCP are unsuited for the TRAP.
+
+A problem more closely related to the TRAP is the one called multicovering problem (MCP)~\cite{hall-hochbaum-1986-fast-approximation, hall-hochbaum-1992-multicovering}, defined as follows:
 \begin{alignat}{3}
   &\min & \quad & z = c^\top x \notag\\
   &\text{subject to}  &       & Ax \ge b \, , \notag\\
-  &                   &       & x_j \in \{0, 1\}  & \qquad & \forall j \, , \notag
+  &                   &       & x_j \in \{0, 1\}  & \qquad & \forall j=1,\dots,n \, , \notag
 \end{alignat}
 where $A$ is a binary matrix and $b$ is a vector of positive integers. This problem differs from the one at hand in that $A$ is binary and not simply non-negative.
 
-Furthermore, a generalization of the TRAP may be identified in the so-called covering integer problem (CIP) \cite{kolliopoulos-2003-approximating}, defined as follows:
+Notably, Hall and Hochbaum~\cite{hall-hochbaum-1992-multicovering} adopted a branch-and-cut procedure to solve the MCP, using a primal heuristic to find upper bounds and combining a dual heuristic with subgradient optimization to find lower bounds. From this work we derived the main primal heuristic for our branch-and-bound algorithm (see Sections~\ref{subsec:branch-bound:primal} and~\ref{subsec:results:comparisons}). 
+
+Furthermore, a generalization of the TRAP may be identified in the so-called covering integer problem (CIP)~\cite{kolliopoulos-2003-approximating,kolliopoulos-2005-approximation}, defined as follows:
 \begin{alignat}{3}
   &\min & \quad & z = c^\top x \notag\\
   &\text{subject to}  &       & Ax \ge b \, , \notag\\
-  &                   &       & x_j \ge 0  & \qquad & \forall j \, , \notag
+  &                   &       & x_j \le d_j & \qquad & \forall j=1,\dots,n \, , \notag\\
+  &                   &       & x_j \in \mathbb{Z}_{+}  & \qquad &  \forall j=1,\dots,n \, , \notag
 \end{alignat}
-where all the entries in $A$, $b$ and $c$ are non-negative. This problem differs from the one at hand in that $x$ is not binary. 
+where all the entries in $A$, $b$, $c$ and $d$ are non-negative. This problem is equivalent to the TRAP when the multiplicity constraints $x_j \le d_j$ force $x$ to be binary. Unfortunately, we found only approximation algorithms for the CIP (see~\cite{kolliopoulos-2003-approximating,kolliopoulos-2005-approximation}).
 
-\section{Branch-and-bound}
+\section{Branch-and-Bound}
+\label{sec:branch-bound}
+
+In this section we describe the different aspects of the branch-and-bound algorithm we experimented upon to solve the TRAP: the primal heuristics used to find upper bounds (Section~\ref{subsec:branch-bound:primal}); the techniques used to find lower bounds (Section~\ref{subsec:branch-bound:lb}); the branching rules (Section~\ref{subsec:branch-bound:branch}); and the variable fixing strategies (Section~\ref{subsec:branch-bound:reduction}). 
 
 \subsection{Primal Heuristics}
+\label{subsec:branch-bound:primal}
+
+\subsubsection{Greedy heuristic.} This method selects greedily the variables of the cover, picking the row $i$ with the largest ratio between the sum $\sum_{j \in J} a_{ij}$ and $b_i$ and then picking the column with the largest coefficient. Each time a variable is selected, the coefficients on the left-hand side (LHS) and right-hand side (RHS) are decreased accordingly.
+
+In this way we select the row which is easiest to cover, since a larger ratio means that more solutions might satisfy the constraint. Indeed, when the sum $\sum_{j \in J} a_{ij}$ is equal to $b_i$, we must select all variables with non-zero entries in $A_i$ in order to satisfy the constraint, thus restricting the number of possible solutions. By picking the column with the largest coefficient we aim to satisfy the covering constraint in the fastest way.
+
+\subsubsection{Dobson heuristic.} This heuristic is taken from Dobson~\cite{dobson-1982-worst-case} and generalizes an heuristic for the SCP from Chvatal~\cite{chvatal-1979-greedy}. This heuristic picks the column $j$ that minimizes $c_j \sum_{i=1,\dots,m} a_{ij}$. Furthermore, any $a_{ij}$ larger than $b_i$ is lowered down to $b_i$.
+
+The idea of this method is to pick the column that covers the most while costing the least. In the case of the TRAP, however, the cost of each column is equal to the sum of the coefficients of that column, which means that all columns could be equivalently selected. The only exception to this occurs when a column $j$ is enough to cover the remaining part of $b_i$ for any $i$. In this case, $a_{ij}$ would be lowered and therefore $c_j \sum_{i=1,\dots,m} a_{ij}$ would also be lowered. 
+
+In short, this method, applied to the TRAP, prioritizes the columns whose coefficients are enough to cover the remaining part of $b_i$ for any $i$. 
+
+\subsubsection{Hall-Hochbaum heuristic.} This method is adapted from one of the heuristics conceived by Hall and Hochbaum~\cite{hall-hochbaum-1992-multicovering}. Specifically, this method picks the column $j$ that maximizes $\frac{1}{c_j} \sum_{i \in L} \frac{b_i a_{ij}}{\text{space}(i)}$, where $L = \{i \in I : b_i > 0 \}$ and $\text{space}(i) = \sum_{j \in J} a_{ij} - b_i$.
 
 \subsection{Lower Bounds}
+\label{subsec:branch-bound:lb}
 
-\subsection{Branching}
+\subsubsection{Lagrangean relaxation.} A lower bound to the optimal value of problem~(\ref{eq:primal}) can be obtained by solving the LR defined in~(\ref{eq:lagrangean}). When the Lagrangean multipliers $\lambda$ are given, the objective function of~(\ref{eq:lagrangean}) is trivially minimized by setting $x_j$ to 1 when $\sum_{i \in I} (1 - \lambda_i) a_{ij} < 0$ and to 0 otherwise. The only problem left is to find the optimal Lagrangean multipliers, yielding the highest lower bound.
 
-\subsection{Reduction}
+Subgradient optimization is a popular algorithm to find the optimal Lagrangean multipliers. The version of subgradient optimization we employed is mostly taken from~\cite{balas-carrera-1996-dynamic} and is described in Algorithm~\ref{alg:subgrad}.
 
-\section{Computational Results}
-
-
-
-
+\begin{algorithm}
+  \DontPrintSemicolon
+  \caption{Subgradient optimization}\label{alg:subgrad}
+  \KwInput{$A$, $b$, $z_{\text{LB}}$, $z_{\text{UB}}$; $f$, $k$, $\epsilon$, $\omega$}
+  $t \gets 1$\; 
+  $\lambda_i^t = 0 ~ \forall i \in I$\;
+  $\lambda_{\text{best}} \gets \lambda^t$\;
+  $z_{\text{best}} \gets z_{\text{LB}}$\; 
+  \While{$z_{\text{UB}} > z_{\text{LB}}$ }{
+    \For{$j \in J$}{
+      \If{$\sum_{i \in I} (1 - \lambda^t_i) a_{ij} < 0$}{
+        $x_j \gets 1$
+      }
+      \Else{
+        $x_j \gets 0$
+      }
+    }
+    $L(\lambda^t) \gets \sum_{j \in J} \left( \sum_{i \in I} (1 - \lambda^t_i) a_{ij} \right) x_j + \sum_{i \in I} \lambda^t_i b_i$\;
+    \If{$L(\lambda^t) > z_{\text{LB}}$}{
+      $z_{\text{LB}} \gets L(\lambda^t)$\;
+      $z_{\text{best}} \gets z_{\text{LB}}$\;
+      $\lambda_{\text{best}} \gets \lambda^t$\;
+    }
+    $g(\lambda^t) \gets b - A^\top x$ \Comment*[r]{gradients}
+    \If{$z_{\text{LB}}$ unchanged for $k$ iterations}{
+      $f \gets \frac{f}{2}$\; 
+    }
+    $\sigma^t \gets \frac{f(z_{\text{UB}} - z_{\text{LB}})}{\norm{g(\lambda^t)}^2}$ \Comment*[r]{step length}
+    \For{$i \in I$}{
+      $\lambda_i^{t+1} \gets \max(0, \lambda_i^t + \sigma^t g_i^t(\lambda^t))$
+    }
+    \If{$\sigma^t < \epsilon \lor t > \omega$}{break}
+    $t \gets t + 1$\;
+  }
+  \Return $z_{\text{best}}$, $\lambda_{\text{best}}$
+\end{algorithm}
 
 When searching for the best Lagrangean multipliers in (\ref{eq:lagrangean}), we cannot assume that the Lagrangean multipliers can be confined within the range $[0, 1]$.
 
@@ -123,13 +188,61 @@ When searching for the best Lagrangean multipliers in (\ref{eq:lagrangean}), we 
     1 & 2 & 3\\
     3 & 1 & 4\\
     2 & 2 & 2
-    \end{bmatrix}$ and a vector $b = \begin{bmatrix}
-      2\\
-      5\\
-      1
-      \end{bmatrix}$.
+    \end{bmatrix}$ and a vector $b = \begin{bmatrix}2\\5\\1\end{bmatrix}$. If we run Algorithm~\ref{alg:subgrad} with parameters $f=2$, $k=5$, $\epsilon=0.005$, $\omega=200$ and we constrain each Lagrangean multiplier within the range $[0, 1]$, we obtain $z_{\text{LB}} = 8$ and $\lambda = \begin{bmatrix}1\\1\\1\end{bmatrix}$. Running the algorithm with the same parameters, but without bounds on the Lagrangean multipliers, we obtain $z_{\text{LB}} = 10.498$ and $\lambda = \begin{bmatrix}0.004\\2.256\\0\end{bmatrix}$. \hfill $\square$
 \end{proof}
 
+Another option to find the optimal Lagrangean multipliers is to solve the dual of the LP relaxation of~\ref{eq:primal}, which we defined in Section~\ref{subsec:problem:formalization}. In the context of the SCP, this method was adopted, for instance, in~\cite{beasley-1987-algorithm,balas-ho-2009-set-covering}; and it is mentioned as a viable approach in~\cite{caprara-2000-algorithms}, due to the fact that the dual of the LP relaxation has the integrality property.
+
+\subsubsection{LP relaxation.} Finally, one could consider solving the LP relaxation of~(\ref{eq:primal}) to obtain a lower bound. In fact, it is observed in~\cite{caprara-2000-algorithms} that ``the lower bound determined by Lagrangian or alternative relaxations is much worse than the optimal solution value of the LP relaxation". The same Authors remark that exact algorithms may behave better with LP relaxation, whereas Lagrangean relaxation may be better suited for heuristic algorithms.   
+
+\subsection{Branching Rules}
+\label{subsec:branch-bound:branch}
+
+\subsubsection{Reduced costs branching.} For this branching we compute the reduced costs $r$ of the variables with the formula $r = (1 - \lambda) \cdot A$. Then, we complete the partial solution of the current node by setting to 0 all the variables not fixed to 1. After that, we select the variable $x_j$ with the minimum reduced cost and a non-zero coefficient in the row with the largest violation, considering the completed solution. Finally, we generate two children nodes, fixing $x_j$ equal to 0 in the first and equal to 1 in the second.
+
+\subsubsection{Cost branching for LP.} This branching rule follows the same strategy as the reduced costs branching, except for the fact that we select the variable with the minimum cost instead of the variable with the minimum reduced cost. This modification allows to employ this rule with the LP relaxation, since in that case we do not have the Lagrangean multipliers (or dual variables) $\lambda$. 
+
+\subsubsection{Beasley branching.} This is the branching rule used in~\cite{beasley-1987-algorithm} and differs from the reduced costs branching rule only for the fact that we select the row whose corresponding Lagrangean multiplier has the largest value instead of the row with the largest violation.
+
+\subsection{Reduction}
+\label{subsec:branch-bound:reduction}
+
+\subsubsection{Lagrangean penalties.} Following~\cite{beasley-1987-algorithm}, we used the reduced costs to fix variables to 0 or to 1 to reduce the size of the problem instances. 
+
+Let $r = (1 - \lambda) \cdot A$ be the vector of reduced costs, $z_{\text{LB}}$ be the lower bound of the current node and $z_{\text{UB}}$ be the best incumbent upper bound. Then we can fix $x_j$ to 0 when $r_j \ge 0$ and $z_{\text{LB}} + r_j > z_{\text{UB}}$, and we can fix $x_j$ to 1 when $r_j < 0$ and $z_{\text{LB}} - r_j > z_{\text{UB}}$.  
+
+\subsubsection{Column inclusion.} This reduction method is adapted from ~\cite{beasley-1987-algorithm} and consists in fixing to 1 all the unassigned variables with a non-zero coefficient in an uncovered row, when said row cannot be covered otherwise.
+
+\section{Computational Results}
+\label{sec:results}
+
+In this section we briefly describe the machine and the technologies used to run the experiments (Section~\ref{subsec:results:tech}), we illustrate how the problems were generated (Section~\ref{subsec:results:generation}), and then we show the results of our tests (Section~\ref{subsec:results:comparisons}).  
+
+\subsection{Technologies and Hardware}
+\label{subsec:results:tech}
+
+We carried out the computational analysis of the branch-and-bound procedure on a machine with 16 gigabytes of RAM and a CPU Intel(R) Core(TM) i7-9700K 3.60GHz with 8 cores. The code was implemented in Python 3.11.2.
+
+We included in our comparison the results obtained with Gurobi 10.0.2\footnote{https://www.gurobi.com/}, in order to gauge the effectiveness of our solution in contrast to a commercial solver. It is worth noting that Gurobi, unlike our implementation, exploits multi-threading. Moreover, the Gurobi engine is written in C with API for Python and other programming languages. These factors should be taken into account when evaluating the results.    
+
+\subsection{Problem Generation}
+\label{subsec:results:generation}
+
+The TRAP instances were randomly generated by taking in input the number of desired rows ($m$), columns ($n$) and the density of the matrix. The density is the percentage of non-zero coefficients in each row of the matrix A.
+
+For each row, the value of $b_i$ was picked uniformly at random between $n$ and $n^2$. Then, the sum of the coefficients on the LHS was picked uniformly at random between $2b_i$ and $5b_i$. The number of columns with a non-zero coefficient was then determined using the density parameter and their indices were picked uniformly at random. Finally, the sum of the coefficients on the LHS was distributed uniformly at random among the selected column indices.
+
+\subsection{Comparative Analysis}
+\label{subsec:results:comparisons}
+
+\subsubsection{Primal heuristics.}
+
+\subsubsection{Subgradient optimization parameters.} We took the params from Balas? F=2 and halve is something from Held and Karp I think. Finally, we settled for 200 as the maximum number of iterations, since we found that the optimal value of the Lagrangean multipliers was already obtained by that point in a set of problems of different sizes (see Figure). 
+
+\subsection{Runtime and number of nodes.}
+
+
+Gurobi logs report using and the cuts
 
 
 
@@ -147,16 +260,6 @@ When searching for the best Lagrangean multipliers in (\ref{eq:lagrangean}), we 
 
 
 
-
-
-
-
-
-Our analysis was carried out on the USPS dataset\footnote{\url{https://www.kaggle.com/datasets/bistaumanga/usps-dataset}}, comprising 9298 $16\times16$ grayscale images. These images depict handwritten digits ranging from 0 to 9. A sample of these digits can be seen in Figure~\ref{fig:dataset:digits}. The classes do not present severe imbalance issues, as shown in Figure~\ref{fig:dataset:class_counts}. The values of the examples are scaled in the interval $[0, 1]$.
-
-To gauge the complexity of multiclass classification on this dataset, we performed dimensionality reduction by way of  t-distributed Stochastic Neighbor Embedding (t-SNE)~\cite{maaten-2008-tsne} and projected the examples onto a two-dimensional space. The result is given in Figure~\ref{fig:dataset:tsne}. Within this figure the examples are clustered into ten clearly distinguishable groups, thus suggesting a low complexity classification task.   
-
-The USPS dataset is made available with predetermined training and test sets. In our experiments, however, we merged these sets and run a 5-fold cross-validation on the whole dataset, as illustrated in Section~\ref{sec:experiments}. 
 
 \begin{figure}
   \center
@@ -165,152 +268,6 @@ The USPS dataset is made available with predetermined training and test sets. In
   \label{fig:dataset:digits}
 \end{figure}
 
-\section{Pegasos Algorithm}
-\label{sec:algorithm}
-
-In the present section we describe the Pegasos algorithm (Section~\ref{subsec:algorithm:description}), the kernel functions employed in our experiments (Section~\ref{subsec:algorithm:kernel}), and some implementation details to reduce the runtime of the algorithm (Section~\ref{subsec:algorithm:implementation}).
-
-\subsection{Description}
-\label{subsec:algorithm:description}
-
-The Pegasos algorithm~\cite{shalev-pegasos-2011} was introduced to solve the Support Vector Machine (SVM)~\cite{vapnik-1999-statistical-learning} convex optimization problem for binary classification, which can be formalized as follows. 
-
-Let $S = \{(\bm{x}_1,y_1),\dots,(\bm{x}_m,y_m)\}$ be a training set with $\bm{x}_t \in \mathbb{R}^d, \, y_t \in \{-1, 1\}$ $\forall t=1,\dots,m$; and let $\phi_K : \mathbb{R}^d \to \mathcal{H}_K$ be a function such that $\text{dim}(\mathcal{H}_K) \gg d$ and $\langle \cdot , \cdot \rangle_K$ is the inner product in $\mathcal{H}_K$. The optimization problem aims to find the maximum margin separating hyperplane in $\mathcal{H}_K$, which separates the examples according to their labels and maximizes the distance between the hyperplane and the closest example. This yields the following quadratic programming problem: 
-\begin{alignat}{3}
-  &\min_{g \in \mathcal{H}_K, \bm{\xi} \in \mathbb{R}^m} & \quad & \frac{\lambda}{2} \norm{g}_K^2 + \frac{1}{m}\sum_{t=1}^{m} \xi_t \, , \notag\\
-  &\text{subject to}  &       & y_t \langle g, \phi_K(\bm{x}_t) \rangle_K \geq 1 - \xi_t &\qquad& t = 1,\dots,m \, , \notag\\
-  &                   &       & \xi_t \geq 0  &\qquad& t = 1,\dots,m \, , \notag
-\end{alignat}
-where $\lambda$ is a regularization coefficient dictating the relative importance of the two terms in the objective function; and $\xi_t$ are slack variables that allow, but penalize, examples lying on the wrong side of the hyperplane.
-
-This formulation can be turned into the following unconstrained optimization problem:
-\[
-  \min_{g \in \mathcal{H}_K} \quad \frac{\lambda}{2} \norm{g}_K^2 + \frac{1}{m}\sum_{t=1}^{m} h_t(g) \, ,
-\]
-where $h_t(g) = [1 - y_t\langle g, \phi_K(\bm{x}_t) \rangle_K]_+$ is the hinge loss.
-
-Pegasos solves this optimization problem using a stochastic gradient descent approach. The algorithm performs $T$ iterations, each of which consists in drawing a training example uniformly at random and updating $g$ through a gradient step. In particular, at iteration $t$ Pegasos computes
-\begin{equation}
-  g_{t+1} = \frac{1}{\lambda t} \sum_{r = 1}^{t} \mathbb{I}\{h_{s_r}(g_r) > 0\} y_{s_r} K(\bm{x}_{s_r}, \cdot) \, , \label{eqn:pegasos:g}
-\end{equation}
-where $\mathbb{I}$ is the indicator function, $s_r$ is the index of the training example randomly drawn at iteration $r$, and $K : \mathbb{R}^d \times \mathbb{R}^d \to \mathbb{R}$ is a kernel function such that $K(\bm{x},\bm{x}^\prime) = \langle \phi_K(\bm{x}), \phi_K(\bm{x}^\prime) \rangle_K$.
-
-Note that $g_{t+1}$ is a function, not a vector. Indeed, the dot in $K(\bm{x}_{s_r}, \cdot)$ stands for a missing argument, corresponding to the example on which the function is evaluated. Therefore, unlike vectors, $g_{t+1}$ cannot be stored in memory and used to perform inference on new examples, since we have to evaluate $g_{t+1}$ on them first.
-
-In order to simplify the process, it was observed in~\cite{shalev-pegasos-2011} that~(\ref{eqn:pegasos:g}) can be rewritten as
-\[
-  g_{t+1} = \frac{1}{\lambda t} \sum_{j = 1}^{m} \bm{\alpha}_{t+1}[j] y_j K(\bm{x}_j, \cdot) \, ,
-\]
-where $\bm{\alpha}_{t+1} \in \mathbb{R}^m$ is a vector representing how many times each example $\bm{x}_j$ in the training set has been drawn and resulted in a non-zero loss, that is
-\[
-  \bm{\alpha}_{t+1}[j] = 	\lvert \{r \leq t : s_r = j \land y_j\langle g_r, \phi_K(\bm{x}_j) \rangle_K < 1 \} \rvert \, .
-\]
-The vector $\bm{\alpha}_{t+1}$ can be kept in memory and used to quickly evaluate $g_{t+1}$ on new examples during both training and test. Algorithm~\ref{alg:pegasos} shows the pseudocode for the kernelized Pegasos algorithm using the abovementioned approach.    
-
-\begin{algorithm}
-  \DontPrintSemicolon
-  \caption{Pegasos algorithm in a kernel space}\label{alg:pegasos}
-  \KwHyperparameters{$T$, $\lambda > 0$}
-  \KwData{Training set $S = \{(\bm{x}_1,y_1),\dots,(\bm{x}_m,y_m)\}$}
-  $\bm{\alpha}_1 \gets (0,\dots,0)$\;
-  \For{$t=1$ \KwTo $T$}{   
-    Choose $s_r \in \{0,\dots, \lvert S \rvert\}$ uniformly at random \;
-    \If{$y_{s_r}\frac{1}{\lambda t} \sum_{j = 1}^{m} \bm{\alpha}_{t}[j] y_j K(\bm{x}_j, \bm{x}_{s_r}) < 1$}{
-      $\bm{\alpha}_{t+1}[s_r] = \bm{\alpha}_{t}[s_r] + 1$\;
-    }
-  }
-  \Return $\bm{\alpha}_{T+1}$
-\end{algorithm}
-
-Once the vector $\bm{\alpha}_{T+1}$ has been obtained, the label of a new example $\bm{x}$ can be predicted by computing
-\begin{equation}
-  \hat{y} = \sgn \left( \sum_{j = 1}^{m} \bm{\alpha}_{T+1}[j] y_j K(\bm{x}_j, \bm{x}) \right) \, .
-\end{equation}
-It is not necessary to multiply the sum by $\frac{1}{\lambda T}$, since scaling does not affect the sign.
-
-So far we illustrated the Pegasos algorithm for binary classification. In order to handle multiclass classification, we can adopt the one-vs-all multiclass strategy. We prepare a different binary classifier for each class. These binary classifiers are trained using labels encoded as $1$ for the examples belonging to the class of the classifier, and encoded as $-1$ for the examples belonging to all the other classes. 
-
-Finally, to determine the class of a new example $\bm{x}$, we first compute
-\begin{equation}
-  h_i = \sum_{j = 1}^{m} \bm{\alpha}_{T+1}[j] y_j K(\bm{x}_j, \bm{x}) \,
-  \label{eqn:pegasos:h_i}
-\end{equation}
-for each classifier $c_i$, and then predict with
-\[
-  \hat{y} = \argmax_i {h_i} \, .
-\]
-Also in this case scaling $h_i$ is unnecessary, given that $\frac{1}{\lambda T}$ is always positive and therefore does not change the order of the $h_i$ values.
-
-% What sets the Pegasos algorithm apart from other algorithms developed to solve the SVM problem is its ability to converge to a solution that differs from the optimal solution by less than $\epsilon$ in $O(\frac{1}{\lambda \epsilon})$ iterations with high probability with respect to the random draws of the training examples. In other terms, the convergence rate does not depend on the size of the training set, but only on the number of iterations, making Pegasos a suitable algorithm to perform classification over large datasets.  
-
-\subsection{Kernel functions}
-\label{subsec:algorithm:kernel}
-
-In our experiments with the Pegasos algorithm, we employed two kernel functions: the Gaussian kernel and the polynomial kernel. The Gaussian kernel is defined as
-\begin{equation}
-  K(\bm{x},\bm{x}^\prime) = \exp(-\frac{1}{2 \gamma}\norm{\bm{x} - \bm{x}^\prime}^2) \, , \label{eqn:kernel:gaussian}
-\end{equation}
-with $\gamma > 0$. The polynomial kernel is defined as
-\begin{equation}
-  K(\bm{x},\bm{x}^\prime) = (1 + \bm{x}^\top \bm{x}^\prime)^n \, , \label{eqn:kernel:polynomial} 
-\end{equation}
-where $n \in \mathbb{N}$ is the degree of the polynomial. 
-
-\subsection{Implementation}
-\label{subsec:algorithm:implementation}
-
-In this section we expound on two implementation details that improve the runtime of the algorithm.
-
-\subsubsection{Kernel matrix.} In order to perform multiclass classification, we need to train multiple classifiers, each running the Pegasos algorithm over the same training set. Within this framework, the kernel function between two given examples may be computed multiple times, resulting in redundant computations.
-
-Moreover, at each iteration the Pegasos algorithm computes the kernel function between a randomly drawn training example and all the other training examples. Drawing the same example multiple times results in further redundant computations.
-
-Redundant computations adversely affect the runtime of the algorithm and should therefore be avoided. To this effect, we opted to compute ahead of time the kernel matrix $K \in \mathbb{R}^{m \times m}$, such that
-\[
-  K_{i,j} = K(\bm{x}_i, \bm{x}_j) \quad \forall i,j=1,\dots,m \, .
-\]
-This matrix was then dispatched to each classifier and used in place of the kernel function evaluation.
-
-The drawback of the kernel matrix lies in its memory footprint. However, given the number of examples in the USPS dataset, such a matrix would require at most $\frac{9298 \times 9298 \times 32}{2^3 \times 10^9} \approx 0.34$ gigabytes of memory, which in modern machines constitutes a negligible amount.  
-
-\subsubsection{Vectorization.} The summations within the Pegasos algorithm can be vectorized, thus allowing to exploit the highly optimized array operations made available by math libraries.
-
-In particular, the condition of the \texttt{if} statement within Algorithm~\ref{alg:pegasos} can be rewritten as
-\[
-  y_{s_r}\frac{1}{\lambda t} (\bm{\alpha}_t \odot y)^\top K_{s_r} < 1 \, ,
-\]
-where $\odot$ is the Hadamard product and $K$ is the kernel matrix between the training examples. Likewise, the formula for $h_i$ in (\ref{eqn:pegasos:h_i}) can be rewritten as
-\[
-  \bm{h}_i = (\bm{\alpha}_{T+1} \odot y)^\top K^\prime \, ,
-\]
-where $K^\prime$ is the kernel matrix between the test examples and the training examples and $\bm{h}_i$ is the vector containing the predictions for all the test examples returned by classifier $c_i$.
-
-Also the computation of the kernel matrices can be vectorized. In the case of the polynomial kernel, the vectorization is trivial, since the dot product between vectors in~(\ref{eqn:kernel:polynomial}) directly translates into a matrix product. In the case of the Gaussian kernel, however, an analogous approach would fail, because subtracting the training set matrix from itself in~(\ref{eqn:kernel:gaussian}) would result in a null matrix. We therefore followed another approach.
-
-Let $S \in \mathbb{R}^{n \times m}$ be a training set. In order to vectorize the kernel matrix with respect to the Gaussian kernel, we need to compute the difference between each row in $S$ and all the rows in $S$. To accomplish this, we first turn $S$ into a tensor $T \in \mathbb{R}^{n \times 1 \times m}$, in which each row $T_i$ is a $1 \times m$ matrix containing only the corresponding row $S_i$ of the original matrix. Then, we simply compute
-\[
-  R = T - S \, ,
-\]
-where $R \in \mathbb{R}^{n \times n \times m}$ is a tensor having $R_i = S_i - S \; \forall i=1,\dots,n$, in which $S_i$ is casted into a $\mathbb{R}^{n \times m}$ matrix using broadcasting rules\footnote{\url{https://numpy.org/doc/stable/user/basics.broadcasting.html}}. Once $R$ is obtained, the Gaussian kernel formula in~\ref{eqn:kernel:gaussian} can be applied straightforwardly. The same procedure can be applied when computing the kernel matrix between the test and training examples.
-
-One caveat of this approach is that $R$ has a much larger memory footprint than the $n \times n$ kernel matrix. At most, the required memory for the USPS dataset would be $0.34 \times 256 \approx 87$ gigabytes. For this reason, it is necessary to split $S$ into chunks, apply the procedure on each chunk and then concatenate the results.
-
-\subsubsection{Comparison.} The training runtime reduction obtained by applying the abovementioned optimizations on a single binary classifier is given in Figure~\ref{fig:algorithm:runtime}. The shown improvement becomes even more prominent when accounting the fact that, for multiclass classification, multiple classifiers need to be trained.
-
-\section{Experiments}
-\label{sec:experiments}
-
-In this section we show the results of our experiments on the multiclass classification task using the Pegasos algorithm. The experiments were run on a machine with 16 gigabytes of RAM and a CPU Intel(R) Core(TM) i7-9700K 3.60GHz with 8 cores.
-
-\subsubsection{Cross-validation.} The algorithm performance was evaluated with a 5-fold cross-validation on the entire USPS dataset. The folds were stratified so as to retain the proportion of the classes found in the complete dataset.
-
-\subsubsection{Hyperparameters.} We investigated the behavior of the algorithm for different choices of the hyperparameters $T$ and $\lambda$, respectively representing the number of iterations and the regularization coefficient.
-
-Concerning $T$, we gauged the performance of the algorithm over an increasing number of iterations, starting from a number much smaller than the cardinality of the training set and ending with a number several times bigger than the cardinality of the training set. More precisely, we chose the following values: 1000, 5000, 10000, 25000, 50000.
-
-Concerning $\lambda$, in~\cite{shalev-pegasos-2011} the Pegasos algorithm was evaluated on the USPS dataset using $\lambda$ equal to $1.36 \times 10^{-4}$. It was also observed therein how, given a fixed number of iterations, the performance of the algorithm was inversely proportional to the value of $\lambda$, where $\lambda$ ranged from 1e-7 to 1e-3. The authors remarked that this behavior of the Pegasos algorithm for low values of $\lambda$ was known and attempts were being made to improve the performance for these values of the hyperparameter. We followed this insight, avoiding very low values of $\lambda$, and took the analysis one step further, experimenting with even higher values of $\lambda$, ranging from 1e-5 to 10.
-
-We ran the algorithm with the polynomial and Gaussian kernel. The polynomial kernel was experimented upon with $n$ equal to 2, 3, 4 and 7, in order to assess the effectiveness of the algorithm at both low and high degrees of the polynomial. The Gaussian kernel was run with $\gamma$ equal to 0.25, as suggested in the project requirements, and also with $\gamma$ equal to 0.75 and 2. We note that in~\cite{shalev-pegasos-2011} the authors used $\gamma$ equal to $2$ on the USPS dataset.
 
 \section{Conclusions}
 \label{sec:conclusions}

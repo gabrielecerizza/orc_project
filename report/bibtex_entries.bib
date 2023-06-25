@@ -67,3 +67,138 @@ author = {Nicholas G. Hall and Dorit S. Hochbaum},
 keywords = {Integer programming, set covering, heuristics, cutting planes},
 abstract = {The multicovering problem is: Min CX subject to AX ⩾ b, X ϵ {0,}, where A is a matrix whose elements are all zero or one and b is a vector of positive integers: this problem has many applications in scheduling, location and business areas. A variety of industrial, commercial and military contexts give rise to large problems of this kind, frequently at or beyond the limits of current computational tractability. Our research goal is the development of a special-purpose algorithm capable of solving large problems of this kind. Conceptual and computational inputs to the algorithm arise from three sources: from the generalization of computational tools developed for more specific problems (in particular the set covering problem), from the adaptation of general integer programming and combinatorial optimization methods, and from the development within this paper of special techniques designed to take advantage of the structure of the problem studied. Following a description of the algorithm we give some computational results for randomly generated problems.}
 }
+
+@article{ceria-1998-lagrangian,
+author = {Ceria, Sebastián and Nobili, Paolo and Sassano, Antonio},
+year = {1998},
+month = {04},
+pages = {215-228},
+title = {A Lagrangian-based heuristic for large-scale set covering problems},
+volume = {81},
+journal = {Math. Program.},
+doi = {10.1007/BF01581106}
+}
+
+@article{caprara-1999-lagrangian,
+ ISSN = {0030364X, 15265463},
+ URL = {http://www.jstor.org/stable/223097},
+ abstract = {We present a Lagrangian-based heuristic for the well-known Set Covering Problem (SCP). The algorithm was initially designed for solving very large scale SCP instances, involving up to 5,000 rows and 1,000,000 columns, arising from crew scheduling in the Italian Railway Company, Ferrovie dello Stato SpA. In 1994 Ferrovie dello Stato SpA, jointly with the Italian Operational Research Society, organized a competition, called FASTER, intended to promote the development of algorithms capable of producing good solutions for these instances, since the classical approaches meet with considerable difficulties in tackling them. The main characteristics of the algorithm we propose are (1) a dynamic pricing scheme for the variables, akin to that used for solving large-scale LPs, to be coupled with subgradient optimization and greedy algorithms, and (2) the systematic use of column fixing to obtain improved solutions. Moreover, we propose a number of improvements on the standard way of defining the step-size and the ascent direction within the subgradient optimization procedure, and the scores within the greedy algorithms. Finally, an effective refining procedure is proposed. Our code won the first prize in the FASTER competition, giving the best solution value for all the proposed instances. The algorithm was also tested on the test instances from the literature: in 92 out of the 94 instances in our test bed we found, within short computing time, the optimal (or the best known) solution. Moreover, among the 18 instances for which the optimum is not known, in 6 cases our solution is better than any other solution found by previous techniques.},
+ author = {Alberto Caprara and Matteo Fischetti and Paolo Toth},
+ journal = {Operations Research},
+ number = {5},
+ pages = {730--743},
+ publisher = {INFORMS},
+ title = {A Heuristic Method for the Set Covering Problem},
+ urldate = {2023-06-25},
+ volume = {47},
+ year = {1999}
+}
+
+@article{balas-carrera-1996-dynamic,
+ ISSN = {0030364X, 15265463},
+ URL = {http://www.jstor.org/stable/171579},
+ abstract = {We discuss a branch and bound algorithm for set covering, whose centerpiece is a new integrated upper bounding/lower bounding procedure called dynamic subgradient optimization (DYNSGRAD). This new procedure, applied to a Lagrangean dual at every node of the search tree, combines the standard subgradient method with primal and dual heuristics that interact to change the Lagrange multipliers and tighten the upper and lower bounds, fix variables, and periodically restate the Lagrangean itself. Extensive computational testing is reported. As a stand-alone heuristic, DYNSGRAD performs significantly better than other procedures in terms of the quality of solutions obtainable with a certain computational effort. When incorporated into a branch-and-bound algorithm, DYNSGRAD considerably advances the state of the art in solving set covering problems.},
+ author = {Egon Balas and Maria C. Carrera},
+ journal = {Operations Research},
+ number = {6},
+ pages = {875--890},
+ publisher = {INFORMS},
+ title = {A Dynamic Subgradient-Based Branch-And-Bound Procedure for Set Covering},
+ urldate = {2023-06-25},
+ volume = {44},
+ year = {1996}
+}
+
+@article{kolliopoulos-2005-approximation,
+author = {Kolliopoulos, Stavros G. and Young, Neal E.},
+title = {Approximation Algorithms for Covering/Packing Integer Programs},
+year = {2005},
+issue_date = {November 2005},
+publisher = {Academic Press, Inc.},
+address = {USA},
+volume = {71},
+number = {4},
+issn = {0022-0000},
+url = {https://doi.org/10.1016/j.jcss.2005.05.002},
+doi = {10.1016/j.jcss.2005.05.002},
+journal = {J. Comput. Syst. Sci.},
+month = {nov},
+pages = {495--505},
+numpages = {11},
+keywords = {Covering/packing integer programs, Set cover, Multiplicity constraints, Approximation algorithms}
+}
+
+@article{beasley-1987-algorithm,
+title = {An algorithm for set covering problem},
+journal = {European Journal of Operational Research},
+volume = {31},
+number = {1},
+pages = {85-93},
+year = {1987},
+issn = {0377-2217},
+doi = {https://doi.org/10.1016/0377-2217(87)90141-X},
+url = {https://www.sciencedirect.com/science/article/pii/037722178790141X},
+author = {J.E. Beasley},
+keywords = {Set covering, optimisation},
+abstract = {In this paper we present an algorithm for the set covering problem that combines problem reduction tests with dual ascent, subgradient optimisation and linear programming. Computational results are presented for problems involving up to 400 rows and 4000 columns.}
+}
+
+@inbook{balas-ho-2009-set-covering,
+author="Balas, Egon and Ho, Andrew",
+title="Set covering algorithms using cutting planes, heuristics, and subgradient optimization: A computational study",
+bookTitle="Combinatorial Optimization",
+year="1980",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="37--60",
+abstract="We report on the implementation and computational testing of several versions of a set covering algorithm, based on the family of cutting planes from conditional bounds discussed in the companion paper [2]. The algorithm uses a set of heuristics to find prime covers, another set of heuristics to find feasible solutions to the dual linear program which are needed to generate cuts, and subgradient optimization to find lower bounds. It also uses implicit enumeration with some new branching rules. Each of the ingredients was implemented and tested in several versions. The variant of the algorithm that emerged as best was run on 55 randomly generated test problems (20 of them from the literature), with up to 200 constraints and 2000 variables. The results show the algorithm to be more reliable and efficient than earlier procedures on large, sparse set covering problems.",
+isbn="978-3-642-00802-3",
+doi="10.1007/BFb0120886",
+url="https://doi.org/10.1007/BFb0120886"
+}
+
+@article{hall-hochbaum-1986-fast-approximation,
+  author       = {Nicholas G. Hall and
+                  Dorit S. Hochbaum},
+  title        = {A fast approximation algorithm for the multicovering problem},
+  journal      = {Discret. Appl. Math.},
+  volume       = {15},
+  number       = {1},
+  pages        = {35--40},
+  year         = {1986},
+  url          = {https://doi.org/10.1016/0166-218X(86)90016-8},
+  doi          = {10.1016/0166-218X(86)90016-8},
+  timestamp    = {Thu, 11 Feb 2021 23:25:32 +0100},
+  biburl       = {https://dblp.org/rec/journals/dam/HallH86.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{dobson-1982-worst-case,
+ ISSN = {0364765X, 15265471},
+ URL = {http://www.jstor.org/stable/3689476},
+ abstract = {We give a worst-case analysis for two greedy heuristics for the integer programming problem minimize cx, Ax ≥ b, 0 ≤ x ≤ u, x integer, where the entries in A, b, and c are all nonnegative. The first heuristic is for the case where the entries in A and b are integral, the second only assumes the rows are scaled so that the smallest nonzero entry is at least 1. In both cases we compare the ratio of the value of the greedy solution to that of the integer optimal. The error bound grows logarithmically in the maximum column sum of A for both heuristics.},
+ author = {Gregory Dobson},
+ journal = {Mathematics of Operations Research},
+ number = {4},
+ pages = {515--531},
+ publisher = {INFORMS},
+ title = {Worst-Case Analysis of Greedy Heuristics for Integer Programming with Nonnegative Data},
+ urldate = {2023-06-25},
+ volume = {7},
+ year = {1982}
+}
+
+@article{chvatal-1979-greedy,
+ ISSN = {0364765X, 15265471},
+ URL = {http://www.jstor.org/stable/3689577},
+ author = {V. Chvatal},
+ journal = {Mathematics of Operations Research},
+ number = {3},
+ pages = {233--235},
+ publisher = {INFORMS},
+ title = {A Greedy Heuristic for the Set-Covering Problem},
+ urldate = {2023-06-25},
+ volume = {4},
+ year = {1979}
+}
+

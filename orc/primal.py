@@ -126,9 +126,9 @@ def greedy(A, b, x0, x1):
     fixed to 0 and to 1.
 
     This method selects greedily the variables of the cover,
-    picking the row with the large ratio between left-hand
-    side and right-hand side and then picking the column
-    with the largest coefficient.
+    picking the row with the largest ratio between the sum of 
+    the left-hand side coefficients and right-hand side and 
+    then picking the column with the largest coefficient.
 
     Parameters
     ----------

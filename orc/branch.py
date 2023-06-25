@@ -9,7 +9,7 @@ def branch_reduced_costs(A, b, bb, node):
     additional variable j fixed to 1. 
     
     Variable j is selected as the variable with the minimum 
-    reduced cost and a non-zero entry in the row with the 
+    reduced cost and a non-zero coefficient in the row with the 
     largest violation given the partial solution of the 
     father node.
     
@@ -78,7 +78,7 @@ def branch_lp(A, b, bb, node):
     additional variable j fixed to 1. 
     
     Variable j is selected as the variable with the minimum 
-    cost and a non-zero entry in the row with the largest 
+    cost and a non-zero coefficient in the row with the largest 
     violation given the partial solution of the father node.
     
     Parameters
@@ -146,9 +146,9 @@ def branch_beasley(A, b, bb, node):
     additional variable j fixed to 1. 
     
     Variable j is selected as the variable with the minimum 
-    reduced cost and a non-zero entry in the row corresponding
-    to the Lagrangean multiplier with the largest value. This
-    is the branching rule employed in [1].
+    reduced cost and a non-zero coefficient in the row 
+    corresponding to the Lagrangean multiplier with the 
+    largest value. This is the branching rule employed in [1].
     
     Parameters
     ----------

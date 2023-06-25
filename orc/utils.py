@@ -5,7 +5,7 @@ np.random.seed(42)
 
 def generate_problem(m, n, density=0.5):
     """Generate a covering problem with m rows, n columns 
-    and a percentage of non-zero columns in each row equal 
+    and a percentage of non-zero coefficients in each row equal 
     to density.
 
     Parameters
@@ -17,7 +17,7 @@ def generate_problem(m, n, density=0.5):
         Number of columns for the generated problem.
 
     density : float
-        Percentage of non-zero columns in each row.
+        Percentage of non-zero coefficients in each row.
 
     Returns
     -------
