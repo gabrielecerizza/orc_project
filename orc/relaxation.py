@@ -5,7 +5,7 @@ from gurobipy import GRB
 
 def subgrad_opt(
         A, b, ub, x0, x1, node=None, lambd=None,
-        f=2, k=5, eps=0.005, omega=200):
+        f=2, k=5, eps=0.005, omega=150):
     """Return the lower bound obtained by determining
     the Lagrangean multipliers of the Lagrangean relaxation
     of a problem by way of a subgradient optimization algorithm.
@@ -46,8 +46,7 @@ def subgrad_opt(
         after which the value of f is halved.
 
     eps : float
-        Value of step length (sigma) under which the algorithm 
-        terminates.
+        Value of f under which the algorithm terminates.
 
     omega : int
         Maximum number of iterations.
@@ -94,7 +93,7 @@ def subgrad_opt(
             np.zeros_like(lambd), lambd + sigma * g)
 
         t += 1
-        if sigma < eps or t > omega:
+        if f < eps or t > omega:
             break
     
     if node is not None:
