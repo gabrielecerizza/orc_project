@@ -20,6 +20,7 @@
 \DeclareMathOperator{\sgn}{sgn}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \setlength{\tabcolsep}{7pt}
+\newtheorem{prop}{Proposition}
 
 \begin{document}
 
@@ -38,9 +39,9 @@
 \section*{Introduction}
 \label{sec:introduction}
 
-In this report we detail a branch-and-bound exact method based on Lagrangean relaxation to solve the ticket restaurant assignment problem (TRAP), pursuant to the project specifications set out for the Operational Research Complements course of the Università degli Studi di Milano\footnote{\url{https://homes.di.unimi.it/righini/Didattica/ComplementiRicercaOperativa/ComplementiRicercaOperativa.htm}}. 
+In this report we detail a branch-and-bound exact algorithm based on Lagrangean relaxation to solve the ticket restaurant assignment problem (TRAP), pursuant to the project specifications set out for the Operational Research Complements course of the Università degli Studi di Milano\footnote{\url{https://homes.di.unimi.it/righini/Didattica/ComplementiRicercaOperativa/ComplementiRicercaOperativa.htm}}. 
 
-In Section~\ref{sec:dataset} we illustrate the dataset used in the experiments. In Section~\ref{sec:algorithm} we briefly describe the algorithm and its implementation. In Section~\ref{sec:experiments} we show the results of our experiments and provide comments on them. Finally, Section~\ref{sec:conclusions} contains our concluding remarks. 
+In Section~\ref{sec:problem} we define the problem. In Section~\ref{sec:branch-bound} we describe the main aspects of the branch-and-bound algorithm. In Section~\ref{sec:results} we show the results of our experiments. Finally, Section~\ref{sec:conclusions} contains our concluding remarks.
 
 \section{Ticket Restaurant Assignment Problem}
 \label{sec:problem}
@@ -50,21 +51,21 @@ In this section we define the TRAP (Section~\ref{subsec:problem:definition}), we
 \subsection{Definition}
 \label{subsec:problem:definition}
 
-The TRAP is defined as follows. A ticket company (TC) possesses two kinds of restaurant tickets: the low-profit tickets and the high-profit tickets. TC gives a certain amount of tickets to customer companies (CC). Each CC receives only one kind of tickets. Each CC has different sets of employees and each set uses the tickets to buy meals in a specific restaurant.  
+The TRAP is defined as follows. A ticket company possesses two kinds of restaurant tickets: the low-profit tickets and the high-profit tickets. The ticket company gives the tickets to customer companies. Each customer company receives only one kind of tickets and distributes the tickets to its employees. Each ticket is associated to a specific restaurant and can be used to buy meals only in that restaurant.
 
-For each restaurant with which TC has a deal, a given ratio between low-profit and high-profit tickets must be observed. 
-The TC must maximize the profit while complying with this constraint. Thus, maximizing the profit amounts to minimizing the number of low-profit tickets while ensuring that a given amount of low-profit tickets is assigned for each considered restaurant.
+For each restaurant a given ratio between low-profit and high-profit tickets must be observed. 
+The ticket company must maximize the profit while complying with this constraint. Thus, maximizing the profit amounts to minimizing the number of low-profit tickets while ensuring that a given amount of low-profit tickets is assigned for each considered restaurant.
 
 \subsection{Formalization}
 \label{subsec:problem:formalization}
 
-Let $I = \{1,\dots,m\}$ be a set of restaurants, $J = \{1,\dots,n\}$ be a set of customer companies, $b \in \mathbb{Z}_{+}^{m}$ be the vector representing the minimum amount of low-profit tickets to be assigned for each restaurant, and $A \in \mathbb{Z}_{+}^{m \times n}$ be the matrix representing the amount of low-profit tickets assigned to each given customer company for each given restaurant, so that $a_{ij}$ is the amount of low-profit tickets assigned to customer company $j$ for restaurant $i$. Then, the integer linear programming model of the ticket restaurant assignment problem is the following:
+Let $I = \{1,\dots,m\}$ be a set of restaurants, $J = \{1,\dots,n\}$ be a set of customer companies, $b \in \mathbb{Z}_{+}^{m}$ be the vector representing the minimum amount of low-profit tickets to be assigned for each restaurant, and $A \in \mathbb{Z}_{+}^{m \times n}$ be the matrix representing the amount of low-profit tickets assigned to each customer company for each restaurant, so that $a_{ij}$ is the amount of low-profit tickets assigned to customer company $j$ for restaurant $i$. Then, the integer linear programming model of the TRAP is the following:
 \begin{alignat}{3}
   &\min & \quad & z = \sum_{j \in J} \left( \sum_{i \in I} a_{ij} \right) x_j \label{eq:primal}\\
   &\text{subject to}  &       & \sum_{j \in J} a_{ij} x_j \ge b_i & \qquad & i = 1,\dots,m \, , \notag\\
   &                   &       & x_j \in \{0,1\}  &\qquad& j = 1,\dots,n \, , \notag
 \end{alignat}
-where each binary variable $x_j$ indicates whether customer company $j$ is assigned low-profit tickets. We define a cover a vector $x$ such that $Ax \ge b$.
+where each binary variable $x_j$ indicates whether customer company $j$ is assigned low-profit tickets. A cover is a vector $x$ such that $Ax \ge b$.
 
 From (\ref{eq:primal}), the following Lagrangean relaxation (LR) is obtained:
 \begin{alignat}{3}
@@ -73,14 +74,6 @@ From (\ref{eq:primal}), the following Lagrangean relaxation (LR) is obtained:
   &                   &       & \lambda_i \ge 0  & \qquad & i = 1,\dots,m \, , \notag
 \end{alignat}
 where $\lambda_i$ are the Lagrangean multipliers.
-
-Finally, the dual of the linear programming (LP) relaxation of (\ref{eq:primal}) is:
-\begin{alignat}{3}
-  &\max & \quad & w = \sum_{i \in I} b_i y_i \label{eq:dual}\\
-  &\text{subject to}  &       & \sum_{i \in I} a_{ij} y_i \le c_j & \qquad & j = 1,\dots,n \, , \notag\\
-  &                   &       & y_i \ge 0  &\qquad& i = 1,\dots,m \, , \notag
-\end{alignat}
-where $c_j = \sum_{i \in I} a_{ij}$ for all $j \in J$. The dual of the LP relaxation may be exploited to find optimal Lagrangean multipliers (see Section~\ref{subsec:branch-bound:lb}).
 
 The TRAP is a generalization of the set covering problem (SCP), as explained in the following section. The SCP is NP-hard~\cite{caprara-2000-algorithms}, hence so is the TRAP.
 
@@ -91,13 +84,13 @@ The TRAP is a generalization of the set covering problem (SCP), as explained in 
 
 % However, we stress that large-scale problem instances involving millions of variables and thousands of constraints may be tackled only by heuristic approaches, as observed in~\cite{ceria-1998-lagrangian,caprara-1999-lagrangian}.
 
-The following works in the field of SCP are of particular interest to us. Balas and Ho~\cite{balas-ho-2009-set-covering} adopted a branch-and-cut procedure, comprising a primal heuristic to find upper bounds and subgradient optimization to find lower bounds.
-Beasley~\cite{beasley-1987-algorithm} adopted a branch-and-bound procedure, computing upper bounds with a greedy heuristic, computing lower bounds with dual ascent and subgradient optimization, and devising a number of problem reduction techniques.
-Balas and Carrera~\cite{balas-carrera-1996-dynamic} adopted a dynamic subgradient-based branch-and-bound procedure to solve the SCP, additionally employing variable fixing techniques and heuristics to obtain upper bounds.
+The following works in the field of SCP are of particular interest to us. Balas and Ho~\cite{balas-ho-2009-set-covering} adopted a branch-and-cut algorithm, comprising a primal heuristic to find upper bounds and subgradient optimization to find lower bounds.
+Beasley~\cite{beasley-1987-algorithm} adopted a branch-and-bound algorithm, computing upper bounds with a greedy heuristic, computing lower bounds with dual ascent and subgradient optimization, and devising problem reduction techniques.
+Balas and Carrera~\cite{balas-carrera-1996-dynamic} adopted a dynamic subgradient-based branch-and-bound algorithm, additionally employing variable fixing techniques and heuristics to obtain upper bounds.
 
-We fashioned our branch-and-bound procedure over the algorithms described in these works, adapting their solutions to account for the peculiarities of the TRAP. In particular, these peculiarities preclude the use of techniques that rely on the fact that each given constraint can be satisfied by setting to 1 exactly one variable with a non-zero coefficient in the row corresponding to that constraint.
+We fashioned our branch-and-bound algorithm based on the algorithms described in these works, adapting their solutions to account for the distinctive features of the TRAP. In particular, these distinctive features preclude the use of techniques relying on the fact that each constraint can be satisfied by setting to 1 exactly one variable with a non-zero coefficient in the row corresponding to that constraint.
 
-\subsubsection{Multicovering problem.} A problem more closely related to the TRAP is the one called multicovering problem (MCP)~\cite{hall-hochbaum-1986-fast-approximation, hall-hochbaum-1992-multicovering}, defined as follows:
+\subsubsection{Multicovering problem.} A problem closely related to the TRAP is the one called multicovering problem (MCP)~\cite{hall-hochbaum-1986-fast-approximation, hall-hochbaum-1992-multicovering}, defined as follows:
 \begin{alignat}{3}
   &\min & \quad & z = c^\top x \notag\\
   &\text{subject to}  &       & Ax \ge b \, , \notag\\
@@ -107,56 +100,55 @@ where $A$ is a binary matrix and $b$ is a vector of positive integers. This prob
 
 Notably, Hall and Hochbaum~\cite{hall-hochbaum-1992-multicovering} adopted a branch-and-cut procedure to solve the MCP, using a primal heuristic to find upper bounds and combining a dual heuristic with subgradient optimization to find lower bounds. From this work we derived the main primal heuristic for our branch-and-bound algorithm (see Sections~\ref{subsec:branch-bound:primal} and~\ref{subsec:results:comparisons}). 
 
-\subsubsection{Covering integer problem.} Finally, a generalization of the TRAP may be identified in the so-called covering integer problem (CIP)~\cite{kolliopoulos-2003-approximating,kolliopoulos-2005-approximation}, defined as follows:
+\subsubsection{Covering integer problem.} Finally, a generalization of the TRAP is given by the so-called covering integer problem (CIP)~\cite{kolliopoulos-2003-approximating,kolliopoulos-2005-approximation}, defined as follows:
 \begin{alignat}{3}
   &\min & \quad & z = c^\top x \notag\\
   &\text{subject to}  &       & Ax \ge b \, , \notag\\
   &                   &       & x_j \le d_j & \qquad & \forall j=1,\dots,n \, , \notag\\
   &                   &       & x_j \in \mathbb{Z}_{+}  & \qquad &  \forall j=1,\dots,n \, , \notag
 \end{alignat}
-where all the entries in $A$, $b$, $c$ and $d$ are non-negative. This problem is equivalent to the TRAP when the multiplicity constraints $x_j \le d_j$ force $x$ to be binary. Unfortunately, we found only approximation algorithms for the CIP (see~\cite{kolliopoulos-2003-approximating,kolliopoulos-2005-approximation}).
+where all the entries in $A$, $b$, $c$ and $d$ are non-negative. This problem is equivalent to the TRAP when $d_j = 1$ for all $j=1,\dots,n$. Unfortunately, we found only approximation algorithms for the CIP (see~\cite{kolliopoulos-2003-approximating,kolliopoulos-2005-approximation}).
 
 \section{Branch-and-Bound}
 \label{sec:branch-bound}
 
-In this section we describe the different aspects of the branch-and-bound algorithm we experimented upon to solve the TRAP: the primal heuristics used to find upper bounds (Section~\ref{subsec:branch-bound:primal}); the techniques used to find lower bounds (Section~\ref{subsec:branch-bound:lb}); the branching rules (Section~\ref{subsec:branch-bound:branch}); and the variable fixing strategies (Section~\ref{subsec:branch-bound:reduction}). 
+In this section we describe the different aspects of the branch-and-bound algorithm employed to solve the TRAP: the primal heuristics used to find upper bounds (Section~\ref{subsec:branch-bound:primal}); the strategies used to find lower bounds (Section~\ref{subsec:branch-bound:lb}); the branching rules (Section~\ref{subsec:branch-bound:branch}); and the reduction techniques (Section~\ref{subsec:branch-bound:reduction}). 
 
 \subsection{Primal Heuristics}
 \label{subsec:branch-bound:primal}
 
-\subsubsection{Greedy heuristic.} This method selects greedily the variables of the cover, picking the row $i$ with the largest ratio between the sum $\sum_{j \in J} a_{ij}$ and $b_i$ and then picking the column with the largest coefficient. Each time a variable is selected, the coefficients on the left-hand side (LHS) and right-hand side (RHS) are decreased accordingly.
+\subsubsection{Greedy heuristic.} This heuristic selects greedily the variables of the cover, picking the row $i$ with the largest ratio $\frac{\sum_{j \in J} a_{ij}}{b_i}$ and then picking the column with the largest coefficient. Each time a variable is selected, the coefficients on the left-hand side (LHS) and right-hand side (RHS) are decreased accordingly.
 
-In this way we select the row which is easiest to cover, since a larger ratio means that more solutions might satisfy the constraint. Indeed, when the sum $\sum_{j \in J} a_{ij}$ is equal to $b_i$, we must select all variables with non-zero entries in $A_i$ in order to satisfy the constraint, thus restricting the number of possible solutions. By picking the column with the largest coefficient we aim to satisfy the covering constraint in the fastest way.
+This heuristic selects the row which is easiest to cover, since a larger ratio means that more solutions might satisfy the constraint. Indeed, when $\sum_{j \in J} a_{ij} = b_i$, we must select all variables with non-zero entries in $A_i$ in order to satisfy the constraint, thus restricting the number of possible solutions. By picking the column with the largest coefficient we aim to satisfy the constraint in the fastest way.
 
-\subsubsection{Dobson heuristic.} This heuristic is taken from Dobson~\cite{dobson-1982-worst-case} and generalizes an heuristic for the SCP from Chvatal~\cite{chvatal-1979-greedy}. This heuristic picks the column $j$ that minimizes $c_j \sum_{i=1,\dots,m} a_{ij}$. Furthermore, any $a_{ij}$ larger than $b_i$ is lowered down to $b_i$.
+\subsubsection{Dobson heuristic.} This heuristic is taken from Dobson~\cite{dobson-1982-worst-case} and generalizes an heuristic for the SCP from Chvatal~\cite{chvatal-1979-greedy}. This heuristic picks the column $j$ that minimizes $c_j \sum_{i \in I} a_{ij}$. Furthermore, any $a_{ij}$ larger than $b_i$ is lowered down to $b_i$.
 
-The idea of this method is to pick the column that covers the most while costing the least. In the case of the TRAP, however, the cost of each column is equal to the sum of the coefficients of that column, which means that all columns could be equivalently selected. The only exception to this occurs when a column $j$ is enough to cover the remaining part of $b_i$ for any $i$. In this case, $a_{ij}$ would be lowered and therefore $c_j \sum_{i=1,\dots,m} a_{ij}$ would also be lowered. 
+The idea of this heuristic is to pick the column that covers the most while costing the least. In the case of the TRAP, however, the cost of each column is equal to the sum of the coefficients of that column, which means that all columns could be equivalently selected. The only exception occurs when a coefficient $a_{ij}$ is more than enough to cover the remaining part of $b_i$ for any $i$. In this case, $a_{ij}$ would be lowered and therefore $c_j \sum_{i \in I} a_{ij}$ would also be lowered. Therefore, this heuristic, when applied to the TRAP, prioritizes the columns whose coefficients are more than enough to cover the remaining part of $b_i$ for any $i$. 
 
-In short, this method, applied to the TRAP, prioritizes the columns whose coefficients are enough to cover the remaining part of $b_i$ for any $i$. 
-
-\subsubsection{Hall-Hochbaum heuristic.} This method adapts one of the heuristics conceived by Hall and Hochbaum~\cite{hall-hochbaum-1992-multicovering}. Specifically, this method picks the column $j$ that maximizes $\frac{1}{c_j} \sum_{i \in L} \frac{b_i a_{ij}}{\text{space}(i)}$, where $L = \{i \in I : b_i > 0 \}$ and $\text{space}(i) = \sum_{j \in J} a_{ij} - b_i$.
+\subsubsection{Hall-Hochbaum heuristic.} This heuristic adapts one of the heuristics conceived by Hall and Hochbaum~\cite{hall-hochbaum-1992-multicovering}. Specifically, this heuristic picks the column $j$ that maximizes $\frac{1}{c_j} \sum_{i \in L} \frac{b_i a_{ij}}{\text{space}(i)}$, where $L = \{i \in I : b_i > 0 \}$ and $\text{space}(i) = \sum_{j \in J} a_{ij} - b_i$.
 
 \subsection{Lower Bounds}
 \label{subsec:branch-bound:lb}
 
-\subsubsection{Lagrangean relaxation.} A lower bound to the optimal value of problem~(\ref{eq:primal}) can be obtained by solving the LR defined in~(\ref{eq:lagrangean}). When the Lagrangean multipliers $\lambda$ are given, the objective function of~(\ref{eq:lagrangean}) is trivially minimized by setting $x_j$ to 1 when $\sum_{i \in I} (1 - \lambda_i) a_{ij} < 0$ and to 0 otherwise. The only problem left is to find the optimal Lagrangean multipliers, yielding the highest lower bound.
+\subsubsection{Lagrangean relaxation.} A lower bound to the optimal value of problem~(\ref{eq:primal}) can be obtained by solving the LR defined in~(\ref{eq:lagrangean}). When the Lagrangean multipliers $\lambda$ are given, the objective function of~(\ref{eq:lagrangean}) is trivially minimized by setting $x_j$ to 1 when $\sum_{i \in I} (1 - \lambda_i) a_{ij} < 0$ and to 0 otherwise. The only problem left is to find the optimal Lagrangean multipliers, which yield the highest lower bound.
 
-Subgradient optimization is a popular algorithm to find the optimal Lagrangean multipliers. Our version of subgradient optimization is adapted from~\cite{balas-carrera-1996-dynamic} and is described in Algorithm~\ref{alg:subgrad}.
+Subgradient optimization is a popular algorithm to find the optimal Lagrangean multipliers. Our version of subgradient optimization is adapted from~\cite{balas-carrera-1996-dynamic} and is described in Algorithm~\ref{alg:subgrad}, where $z_{\text{UB}}$ is the best incumber upper bound and $z_{\text{LB}}$ is the lower bound.
 
 \begin{algorithm}
   \DontPrintSemicolon
   \caption{Subgradient optimization}\label{alg:subgrad}
-  \KwInput{$A$, $b$, $z_{\text{LB}}$, $z_{\text{UB}}$; $f$, $k$, $\epsilon$, $\omega$}
+  \KwInput{$A$, $b$, $z_{\text{UB}}$; $f$, $k$, $\epsilon$, $\omega$}
   $t \gets 1$\; 
   $\lambda_i^t = 0 ~ \forall i \in I$\;
   $\lambda_{\text{best}} \gets \lambda^t$\;
+  $z_{\text{LB}} \gets 0$\; 
   $z_{\text{best}} \gets z_{\text{LB}}$\; 
   \While{$z_{\text{UB}} > z_{\text{LB}}$ }{
     \For{$j \in J$}{
-      \If{$\sum_{i \in I} (1 - \lambda^t_i) a_{ij} < 0$}{
+      \eIf{$\sum_{i \in I} (1 - \lambda^t_i) a_{ij} < 0$}{
         $x_j \gets 1$
       }
-      \Else{
+      {
         $x_j \gets 0$
       }
     }
@@ -172,7 +164,7 @@ Subgradient optimization is a popular algorithm to find the optimal Lagrangean m
     }
     $\sigma^t \gets \frac{f(z_{\text{UB}} - z_{\text{LB}})}{\norm{g(\lambda^t)}^2}$ \Comment*[r]{step length}
     \For{$i \in I$}{
-      $\lambda_i^{t+1} \gets \max(0, \lambda_i^t + \sigma^t g_i^t(\lambda^t))$
+      $\lambda_i^{t+1} \gets \max(0, \lambda_i^t + \sigma^t g_i(\lambda^t))$
     }
     \If{$f < \epsilon \lor t > \omega$}{break}
     $t \gets t + 1$\;
@@ -180,32 +172,30 @@ Subgradient optimization is a popular algorithm to find the optimal Lagrangean m
   \Return $z_{\text{best}}$, $\lambda_{\text{best}}$
 \end{algorithm}
 
-When searching for the best Lagrangean multipliers in (\ref{eq:lagrangean}), we cannot assume that the Lagrangean multipliers can be confined within the range $[0, 1]$.
+We cannot assume that the optimal Lagrangean multipliers can be confined within the range $[0, 1]$.
 
-\begin{lemma}
-  The optimal Lagrangean multipliers may not lie in the range $[0, 1]$.
-\end{lemma}
+\begin{prop}
+  The optimal Lagrangean multipliers for problem~(\ref{eq:lagrangean}) may not lie in the range $[0, 1]$.
+\end{prop}
 
 \begin{proof}
   Consider a matrix $A = \begin{bmatrix}
     1 & 2 & 3\\
     3 & 1 & 4\\
     2 & 2 & 2
-    \end{bmatrix}$ and a vector $b = \begin{bmatrix}2\\5\\1\end{bmatrix}$. If we run Algorithm~\ref{alg:subgrad} with parameters $f=2$, $k=5$, $\epsilon=0.005$, $\omega=150$ and we constrain each Lagrangean multiplier within the range $[0, 1]$, we obtain $z_{\text{LB}} = 8$ and $\lambda = \begin{bmatrix}1\\1\\1\end{bmatrix}$. Running the algorithm with the same parameters, but without bounds on the Lagrangean multipliers, we obtain $z_{\text{LB}} = 10.498$ and $\lambda = \begin{bmatrix}0\\2.259\\0\end{bmatrix}$. \hfill $\square$
+    \end{bmatrix}$ and a vector $b = \begin{bmatrix}2\\5\\1\end{bmatrix}$. If we run Algorithm~\ref{alg:subgrad} with parameters $f=2$, $k=5$, $\epsilon=0.005$, $\omega=150$ and we bind the Lagrangean multipliers in the range $[0, 1]$, we obtain $z_{\text{LB}} = 8$ and $\lambda = \begin{bmatrix}1\\1\\1\end{bmatrix}$. Running the algorithm with the same parameters, but without bounds on the Lagrangean multipliers, we obtain $z_{\text{LB}} = 10.498$ and $\lambda = \begin{bmatrix}0\\2.259\\0\end{bmatrix}$. \hfill $\square$
 \end{proof}
 
-Another option to find the optimal Lagrangean multipliers is to solve the dual of the LP relaxation of~\ref{eq:primal}, which we defined in Section~\ref{subsec:problem:formalization}. In the context of the SCP, this method was adopted, for instance, in~\cite{beasley-1987-algorithm,balas-ho-2009-set-covering}; and it is mentioned as a viable approach in~\cite{caprara-2000-algorithms}, due to the fact that the dual of the LP relaxation has the integrality property.
-
-\subsubsection{LP relaxation.} Finally, one could consider solving the LP relaxation of~(\ref{eq:primal}) to obtain a lower bound. In fact, it is observed in~\cite{caprara-2000-algorithms} that ``the lower bound determined by Lagrangian or alternative relaxations is much worse than the optimal solution value of the LP relaxation". The same Authors remark that exact algorithms may behave better with LP relaxation, whereas Lagrangean relaxation may be better suited for heuristic algorithms.   
+\subsubsection{LP relaxation.} Finally, one could consider solving the LP relaxation of~(\ref{eq:primal}) to obtain a lower bound. In fact, it is observed in~\cite{caprara-2000-algorithms} that ``the lower bound determined by Lagrangian or alternative relaxations is much worse than the optimal solution value of the LP relaxation". The same Authors remark that exact algorithms behave better with LP relaxation, whereas Lagrangean relaxation is better suited for heuristic algorithms.   
 
 \subsection{Branching Rules}
 \label{subsec:branch-bound:branch}
 
-\subsubsection{Reduced costs branching.} For this branching rule we compute the reduced costs $r$ of the variables with the formula $r = (1 - \lambda) \cdot A$. After that, we determine a solution by setting to 0 all the variables not fixed to 1 in the current node. Considering the computed solution, we select the variable $x_j$ with the minimum reduced cost and a non-zero coefficient in the row with the largest violation. Finally, we generate two children nodes, fixing $x_j$ equal to 0 in the first and equal to 1 in the second.
+\subsubsection{Reduced costs branching.} For this branching rule we compute the reduced costs $r$ of the variables with the formula $r = (1 - \lambda) \cdot A$. After that, we determine a solution by setting to 0 all the variables not fixed to 1 in the current node. Considering the computed solution, we select the variable $x_j$ with the minimum reduced cost and a non-zero coefficient in the row with the largest violation. Finally, we generate two children nodes, fixing $x_j = 0$ in the first node and $x_j = 1$ in the second.
 
-\subsubsection{Cost branching for LP.} This branching rule follows the same strategy as the reduced costs branching, except for the fact that we select the variable with the minimum cost instead of the variable with the minimum reduced cost. This modification allows to employ this rule with the LP relaxation, since in that case we do not have the Lagrangean multipliers (or dual variables) $\lambda$. 
+\subsubsection{Costs branching for LP.} This branching rule differs from the reduced costs branching rule only because it selects the variable with the minimum cost instead of the variable with the minimum reduced cost. This modification allows to employ this rule with the LP relaxation, since in that case we do not have the Lagrangean multipliers (or dual variables) $\lambda$. 
 
-\subsubsection{Beasley branching.} This is the branching rule used in~\cite{beasley-1987-algorithm} and differs from the reduced costs branching rule only for the fact that we select the row whose corresponding Lagrangean multiplier has the largest value instead of the row with the largest violation.
+\subsubsection{Beasley branching.} This is the branching rule used in~\cite{beasley-1987-algorithm} and differs from the reduced costs branching rule only because it selects the row whose corresponding Lagrangean multiplier has the largest value instead of the row with the largest violation.
 
 \subsection{Reduction}
 \label{subsec:branch-bound:reduction}
@@ -219,9 +209,9 @@ Let $r = (1 - \lambda) \cdot A$ be the vector of reduced costs, $z_{\text{LB}}$ 
 \section{Computational Results}
 \label{sec:results}
 
-In this section we describe the machine and the technologies used to run the experiments (Section~\ref{subsec:results:tech}), we illustrate how the problems were generated (Section~\ref{subsec:results:generation}), and then we show the results of our tests (Section~\ref{subsec:results:comparisons}).  
+In this section we describe the machine and the technologies used to run the experiments (Section~\ref{subsec:results:tech}), we illustrate how the TRAP instances are generated (Section~\ref{subsec:results:generation}), and then we show the results of our tests (Section~\ref{subsec:results:comparisons}).  
 
-\subsection{Technologies and Hardware}
+\subsection{Hardware and Technologies}
 \label{subsec:results:tech}
 
 We ran the branch-and-bound algorithm on a machine with 16 gigabytes of RAM and a CPU Intel(R) Core(TM) i7-9700K 3.60GHz with 8 cores. The code was implemented in Python 3.11.2.
@@ -235,12 +225,12 @@ We include in our comparisons the results obtained with a state-of-the-art comme
 
 We generate random TRAP instances by determining the number of constraints ($m$) and variables ($n$) and the density of the problem. The density is the percentage of non-zero coefficients in each row of the matrix $A$.
 
-For each row, we pick the value of $b_i$ uniformly at random between $n$ and $n^2$. After that, the sum of the coefficients on the LHS is picked uniformly at random between $2b_i$ and $5b_i$. Then, we determine the number of columns with a non-zero coefficient using the density parameter, picking their indices uniformly at random. Finally, the sum of the coefficients on the LHS is distributed uniformly at random among the selected column indices.
+For each row, we pick the value of $b_i$ uniformly at random between $n$ and $n^2$. After that, the sum of the coefficients on the LHS is picked uniformly at random between $2b_i$ and $5b_i$. Then, we determine the number of columns with a non-zero coefficient using the density parameter, selecting their indices uniformly at random. Finally, the sum of the coefficients on the LHS is distributed uniformly at random among the selected column indices.
 
 \subsection{Comparative Analysis}
 \label{subsec:results:comparisons}
 
-\subsubsection{Primal heuristics.} Table~\ref{tab:results:primal} compares the lower bounds obtained by the different primal heuristics over sets of randomly generated TRAP instances with different numbers of rows and columns. The heuristic by Hall and Hochbaum outperforms the other primal heuristics as the size of the problem increases. For this reason, only this heuristic was employed in the subsequent experiments. 
+\subsubsection{Primal heuristics.} Table~\ref{tab:results:primal} compares the lower bounds obtained by the different primal heuristics described in Section~\ref{subsec:branch-bound:primal} over sets of randomly generated TRAP instances with different numbers of rows and columns. We observe that the bigger is the size of the problem, the more the heuristic by Hall and Hochbaum outperforms the other primal heuristics. For this reason, only this heuristic was employed in the subsequent experiments. 
 
 \begin{table}
   \caption{Number of times each primal heuristic provided the solution with the lowest upper bound over sets of 10 randomly generated TRAP instances with different numbers of rows and columns and with density equal to $0.5$. The best result for each set of problems is highlighted in bold.}
@@ -275,83 +265,86 @@ For each row, we pick the value of $b_i$ uniformly at random between $n$ and $n^
   \item SPR: same as SP but with both the reduction techniques described in Section~\ref{subsec:branch-bound:reduction};
   \item SPRR: same as SPR but with the primal heuristic ran only at the root node;
   \item SPRB: same as SPR but with Beasly branching rule instead of reduced costs branching rule;
-  \item LP: LP branching rule, LP relaxation lower bound, Hall-Hochbaum primal heuristic and column inclusion reduction technique.
+  \item LP: costs branching rule, LP relaxation lower bound, Hall-Hochbaum primal heuristic and column inclusion reduction technique.
 \end{itemize}
 
-Tables~\ref{tab:results:runtime} and~\ref{tab:results:nodes} respectively give the runtime and number of nodes for each of these configurations over randomly generated TRAP instances. We forcibly terminated the algorithm when the runtime exceeded 5 minutes. Both tables show how SPRB outperforms the other configurations for almost every problem instance, especially as the size of the instance increases. Even so, the algorithm performs poorly when compared with Gurobi. Contrary to what was observed in Section~\ref{subsec:branch-bound:lb}, LP yields the worst results over all problem instances. 
+Tables~\ref{tab:results:runtime} and~\ref{tab:results:nodes} respectively give the runtime and number of nodes for each of these configurations over randomly generated TRAP instances. We forcibly terminated the algorithm when the runtime exceeded 5 minutes. 
 
-A look at the logs of Gurobi reveals that the solver employs a branch-and-cut algorithm, performing root relaxation and finding heuristic solutions periodically. Some of the mentioned cuts are: Gomory, Cover, MIR, StrongCG, Mod-K, Zero half, RLT.
+Table~\ref{tab:results:runtime} shows how SPR, SPRR and SPRB achieve similar results and outperform the other configurations for all problem instances. Table~\ref{tab:results:nodes} confirms these results abd reveals also how the Beasly branching rule is marginally better than the reduced costs branching rule when the number of nodes is concerned. Contrary to what was observed in Section~\ref{subsec:branch-bound:lb}, LP yields the worst results over all problem instances. 
+
+All this considered, the algorithm still performs poorly when compared to Gurobi. A look at the logs of Gurobi reveals that the solver employs a branch-and-cut algorithm, performing root relaxation and finding heuristic solutions periodically. Some of the mentioned cuts are: Gomory, Cover, MIR, StrongCG, Mod-K, Zero half, RLT.
 
 \begin{table}
-  \caption{Runtime of different configurations of the branch-and-bound algorithm over randomly generated TRAP instances with different numbers of rows and columns and different densities. Configurations whose runtime exceeded 5 minutes were assigned nan values.}
+  \caption{Runtime of different configurations of the branch-and-bound algorithm over randomly generated TRAP instances with different numbers of rows and columns and different densities. Configurations whose runtime exceeded 5 minutes were assigned nan values. The best result obtained by algorithms other than Gurobi is highlighted in bold for each problem instance.}
   \label{tab:results:runtime}
   \centering
   \resizebox{1\textwidth}{!}{
-  \begin{tabular}{lllccccccc}
-  \toprule
-   &  &  & Gurobi & S & SP & SPR & SPRR & SPRB & LP \\
-  Rows & Cols & Density &  &  &  &  &  &  &  \\
-  \midrule
-  \multirow[c]{3}{*}{5} & \multirow[c]{3}{*}{10} & 0.3 & 0.05 & \bfseries 0.00 & \bfseries 0.00 & \bfseries 0.00 & \bfseries 0.00 & \bfseries 0.00 & 0.02 \\
-   &  & 0.5 & 0.00 & 0.03 & 0.08 & \bfseries 0.00 & \bfseries 0.00 & 0.05 & 0.06 \\
-   &  & 0.7 & 0.00 & \bfseries 0.02 & \bfseries 0.02 & \bfseries 0.02 & \bfseries 0.02 & 0.06 & 0.14 \\
-  \cline{1-10}
-  \multirow[c]{3}{*}{10} & \multirow[c]{3}{*}{20} & 0.3 & 0.00 & 4.86 & 16.27 & 4.17 & 2.91 & \bfseries 1.64 & 31.47 \\
-   &  & 0.5 & 0.02 & 12.47 & 20.56 & 7.38 & \bfseries 4.22 & 9.66 & 68.22 \\
-   &  & 0.7 & 0.00 & 29.30 & 36.59 & 18.12 & 12.05 & \bfseries 9.81 & 118.48 \\
-  \cline{1-10}
-  \multirow[c]{3}{*}{13} & \multirow[c]{3}{*}{22} & 0.3 & 0.00 & 20.84 & 33.45 & 7.59 & 5.36 & \bfseries 3.55 & 64.22 \\
-   &  & 0.5 & 0.02 & 29.53 & 38.27 & 17.14 & 14.64 & \bfseries 10.72 & 288.70 \\
-   &  & 0.7 & 0.06 & 94.36 & 116.97 & 43.14 & \bfseries 29.98 & 42.47 & nan \\
-  \cline{1-10}
-  \multirow[c]{3}{*}{15} & \multirow[c]{3}{*}{25} & 0.3 & 0.00 & 62.98 & 93.23 & 24.17 & 17.77 & \bfseries 9.36 & nan \\
-   &  & 0.5 & 0.00 & nan & nan & 161.31 & 113.97 & \bfseries 38.22 & nan \\
-   &  & 0.7 & 0.06 & nan & nan & 291.48 & 248.05 & \bfseries 127.39 & nan \\
-  \bottomrule
-  \end{tabular}
+    \begin{tabular}{lllccccccc}
+      \toprule
+       &  &  & Gurobi & S & SP & SPR & SPRR & SPRB & LP \\
+      Rows & Cols & Density &  &  &  &  &  &  &  \\
+      \midrule
+      \multirow[c]{3}{*}{5} & \multirow[c]{3}{*}{10} & 0.3 & 0.05 & 0.02 & \bfseries 0.00 & 0.03 & 0.02 & 0.02 & 0.05 \\
+       &  & 0.5 & 0.00 & 0.17 & 0.12 & 0.11 & \bfseries 0.03 & 0.12 & 0.14 \\
+       &  & 0.7 & 0.00 & 0.12 & 0.17 & 0.06 & 0.06 & \bfseries 0.02 & 0.25 \\
+      \cline{1-10}
+      \multirow[c]{3}{*}{10} & \multirow[c]{3}{*}{20} & 0.3 & 0.00 & 11.16 & 14.62 & 3.53 & 3.73 & \bfseries 2.81 & 38.53 \\
+       &  & 0.5 & 0.00 & 22.95 & 24.70 & 6.39 & 5.58 & \bfseries 5.34 & 85.36 \\
+       &  & 0.7 & 0.08 & 21.52 & 17.45 & 1.86 & \bfseries 1.53 & 1.61 & 161.22 \\
+      \cline{1-10}
+      \multirow[c]{3}{*}{13} & \multirow[c]{3}{*}{22} & 0.3 & 0.02 & 41.48 & 46.30 & 6.69 & 7.02 & \bfseries 2.61 & 89.72 \\
+       &  & 0.5 & 0.00 & 17.80 & 19.02 & 3.00 & 2.52 & \bfseries 2.47 & nan \\
+       &  & 0.7 & 0.02 & 32.92 & 30.95 & \bfseries 1.25 & 1.50 & 1.69 & nan \\
+      \cline{1-10}
+      \multirow[c]{3}{*}{15} & \multirow[c]{3}{*}{25} & 0.3 & 0.02 & 22.41 & 30.61 & 5.69 & 5.16 & \bfseries 2.66 & nan \\
+       &  & 0.5 & 0.03 & 30.34 & 28.86 & 2.05 & \bfseries 1.45 & 1.69 & nan \\
+       &  & 0.7 & 0.06 & 34.19 & 35.62 & 4.58 & \bfseries 3.67 & 3.81 & nan \\
+      \bottomrule
+      \end{tabular}
   }
 \end{table}
 
 \begin{table}
-  \caption{Number of nodes generated by different configurations of the branch-and-bound algorithm over randomly generated TRAP instances with different numbers of rows and columns and different densities. Configurations whose runtime exceeded 5 minutes were assigned nan values.}
+  \caption{Number of nodes generated by different configurations of the branch-and-bound algorithm over randomly generated TRAP instances with different numbers of rows and columns and different densities. Configurations whose runtime exceeded 5 minutes were assigned nan values. The best result obtained by algorithms other than Gurobi is highlighted in bold for each problem instance.}
   \label{tab:results:nodes}
   \centering
   \resizebox{1\textwidth}{!}{
-  \begin{tabular}{lllccccccc}
-  \toprule
-   &  &  & Gurobi & S & SP & SPR & SPRR & SPRB & LP \\
-  Rows & Cols & Density &  &  &  &  &  &  &  \\
-  \midrule
-  \multirow[c]{3}{*}{5} & \multirow[c]{3}{*}{10} & 0.3 & 0 & 33 & 21 & \bfseries 5 & \bfseries 5 & 7 & 23 \\
-   &  & 0.5 & 1 & 211 & 203 & \bfseries 49 & 51 & 55 & 183 \\
-   &  & 0.7 & 1 & 263 & 253 & 63 & 71 & \bfseries 49 & 323 \\
-  \cline{1-10}
-  \multirow[c]{3}{*}{10} & \multirow[c]{3}{*}{20} & 0.3 & 1 & 19973 & 39189 & 6313 & 6323 & \bfseries 2231 & 55541 \\
-   &  & 0.5 & 50 & 54737 & 50515 & \bfseries 9833 & 10431 & 15731 & 124795 \\
-   &  & 0.7 & 25 & 97731 & 80731 & 21107 & 22757 & \bfseries 13049 & 209799 \\
-  \cline{1-10}
-  \multirow[c]{3}{*}{13} & \multirow[c]{3}{*}{22} & 0.3 & 1 & 85147 & 82659 & 9889 & 12159 & \bfseries 4641 & 117271 \\
-   &  & 0.5 & 1 & 107217 & 85605 & 25719 & 33459 & \bfseries 11809 & 416059 \\
-   &  & 0.7 & 1 & 255533 & 202681 & 39033 & 44051 & \bfseries 38831 & nan \\
-  \cline{1-10}
-  \multirow[c]{3}{*}{15} & \multirow[c]{3}{*}{25} & 0.3 & 1 & 183249 & 145459 & 21561 & 27331 & \bfseries 7761 & nan \\
-   &  & 0.5 & 59 & nan & nan & 151895 & 180799 & \bfseries 35241 & nan \\
-   &  & 0.7 & 384 & nan & nan & 266983 & 365631 & \bfseries 113737 & nan \\
-  \bottomrule
-  \end{tabular}
+      \begin{tabular}{lllccccccc}
+      \toprule
+       &  &  & Gurobi & S & SP & SPR & SPRR & SPRB & LP \\
+      Rows & Cols & Density &  &  &  &  &  &  &  \\
+      \midrule
+    \multirow[c]{3}{*}{5} & \multirow[c]{3}{*}{10} & 0.3 & 0 & 17 & 15 & \bfseries 5 & \bfseries 5 & 7 & 23 \\
+       &  & 0.5 & 1 & 179 & 185 & \bfseries 63 & \bfseries 63 & \bfseries 63 & 183 \\
+       &  & 0.7 & 1 & 75 & 85 & \bfseries 23 & \bfseries 23 & \bfseries 23 & 323 \\
+      \cline{1-10}
+      \multirow[c]{3}{*}{10} & \multirow[c]{3}{*}{20} & 0.3 & 1 & 9131 & 8659 & 1607 & 1761 & \bfseries 1205 & 55541 \\
+       &  & 0.5 & 50 & 15421 & 14115 & 2469 & 2781 & \bfseries 2337 & 124795 \\
+       &  & 0.7 & 25 & 14057 & 8705 & 609 & 607 & \bfseries 559 & 209799 \\
+      \cline{1-10}
+      \multirow[c]{3}{*}{13} & \multirow[c]{3}{*}{22} & 0.3 & 1 & 25257 & 26033 & 2427 & 2849 & \bfseries 907 & 117271 \\
+       &  & 0.5 & 1 & 9147 & 8837 & 949 & 951 & \bfseries 795 & nan \\
+       &  & 0.7 & 1 & 18929 & 14419 & \bfseries 371 & 501 & 453 & nan \\
+      \cline{1-10}
+      \multirow[c]{3}{*}{15} & \multirow[c]{3}{*}{25} & 0.3 & 1 & 13387 & 13475 & 1631 & 2077 & \bfseries 833 & nan \\
+       &  & 0.5 & 59 & 15903 & 14897 & 1731 & 1657 & \bfseries 1541 & nan \\
+       &  & 0.7 & 384 & 53149 & 50545 & \bfseries 4549 & 5315 & 4841 & nan \\
+      \bottomrule
+      \end{tabular}
   }
 \end{table}
 
 \section{Conclusions}
 \label{sec:conclusions}
 
-In this work we described and evaluated a branch-and-bound algorithm to solve the TRAP, employing reduction techniques, different strategies to find upper bounds and lower bounds, and different branching rules. 
+In this work we described and evaluated a branch-and-bound algorithm to solve the TRAP, employing reduction techniques, different strategies to find upper and lower bounds, and different branching rules. The best algorithm configuration, however, fell short when compared with a state-of-the-art solver.
 
-We were unable 
+Further research might investigate a branch-and-cut algorithm. The cutting plane algorithms reported by Gurobi can provide a starting point.
 
-More literature, especially CIP.
+Additionally, the dual of the LP relaxation of~(\ref{eq:primal}) offers another option to find the optimal Lagrangean multipliers for~(\ref{eq:lagrangean}). In the context of the SCP, this method was adopted, for instance, in~\cite{beasley-1987-algorithm,balas-ho-2009-set-covering}. We performed cursory tests on this method, but ultimately decided to disregard it due to memory overloads when running the branch-and-bound algorithm.
 
-Further research might explore a wider set of hyperparameters, especially in the direction of lower regularization coefficient values and higher values of $\gamma$ when using a Gaussian kernel.
+Finally, the similarities between the TRAP and the CIP might warrant delving into the related literature to search for new ideas. 
+
 
 \bibliographystyle{acm}
 \bibliography{bibtex_entries}
