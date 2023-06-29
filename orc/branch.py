@@ -72,7 +72,7 @@ def branch_reduced_costs(A, b, bb, node):
     ]
 
 
-def branch_lp(A, b, bb, node):
+def branch_cost(A, b, bb, node):
     """Return two nodes such that one node has an additional
     variable j fixed to 0 and the other node has the same 
     additional variable j fixed to 1. 
@@ -129,13 +129,13 @@ def branch_lp(A, b, bb, node):
              level=node.get_level() + 1, 
              x0=x0 + [j], 
              x1=x1, 
-             branch_strategy=branch_lp, 
+             branch_strategy=branch_cost, 
              lb_strategy=node.get_lb_strategy()),
         Node(id=bb.get_new_id(),
              level=node.get_level() + 1, 
              x0=x0, 
              x1=x1 + [j], 
-             branch_strategy=branch_lp, 
+             branch_strategy=branch_cost, 
              lb_strategy=node.get_lb_strategy())    
     ]
 

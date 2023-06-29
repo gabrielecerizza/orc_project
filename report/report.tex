@@ -191,9 +191,9 @@ We cannot assume that the optimal Lagrangean multipliers can be confined within 
 \subsection{Branching Rules}
 \label{subsec:branch-bound:branch}
 
-\subsubsection{Reduced costs branching.} For this branching rule we compute the reduced costs $r$ of the variables with the formula $r = (1 - \lambda) \cdot A$. After that, we determine a solution by setting to 0 all the variables not fixed to 1 in the current node. Considering the computed solution, we select the variable $x_j$ with the minimum reduced cost and a non-zero coefficient in the row with the largest violation. Finally, we generate two children nodes, fixing $x_j = 0$ in the first node and $x_j = 1$ in the second.
+\subsubsection{Reduced costs branching.} For this branching rule we compute the reduced costs $\bar{c}$ of the variables with the formula $\bar{c} = (1 - \lambda) \cdot A$. After that, we determine a solution by setting to 0 all the variables not fixed to 1 in the current node. Considering the computed solution, we select the variable $x_j$ with the minimum reduced cost and a non-zero coefficient in the row with the largest violation. Finally, we generate two children nodes, fixing $x_j = 0$ in the first node and $x_j = 1$ in the second.
 
-\subsubsection{Costs branching for LP.} This branching rule differs from the reduced costs branching rule only because it selects the variable with the minimum cost instead of the variable with the minimum reduced cost. This modification allows to employ this rule with the LP relaxation, since in that case we do not have the Lagrangean multipliers (or dual variables) $\lambda$. 
+\subsubsection{Costs branching.} This branching rule differs from the reduced costs branching rule only because it selects the variable with the minimum cost instead of the variable with the minimum reduced cost.
 
 \subsubsection{Beasley branching.} This is the branching rule used in~\cite{beasley-1987-algorithm} and differs from the reduced costs branching rule only because it selects the row whose corresponding Lagrangean multiplier has the largest value instead of the row with the largest violation.
 
@@ -202,7 +202,7 @@ We cannot assume that the optimal Lagrangean multipliers can be confined within 
 
 \subsubsection{Lagrangean penalties.} Following~\cite{beasley-1987-algorithm}, we use the reduced costs to fix variables to 0 or to 1, thus reducing the size of the problem instances. 
 
-Let $r = (1 - \lambda) \cdot A$ be the vector of reduced costs, $z_{\text{LB}}$ be the lower bound of the current node and $z_{\text{UB}}$ be the best incumbent upper bound. Then we can fix $x_j$ to 0 when $r_j \ge 0$ and $z_{\text{LB}} + r_j > z_{\text{UB}}$, and we can fix $x_j$ to 1 when $r_j < 0$ and $z_{\text{LB}} - r_j > z_{\text{UB}}$.  
+Let $\bar{c} = (1 - \lambda) \cdot A$ be the vector of reduced costs, $z_{\text{LB}}$ be the lower bound of the current node and $z_{\text{UB}}$ be the best incumbent upper bound. Then we can fix $x_j$ to 0 when $\bar{c}_j \ge 0$ and $z_{\text{LB}} + \bar{c}_j > z_{\text{UB}}$, and we can fix $x_j$ to 1 when $\bar{c}_j < 0$ and $z_{\text{LB}} - \bar{c}_j > z_{\text{UB}}$.  
 
 \subsubsection{Column inclusion.} This reduction method is adapted from~\cite{beasley-1987-algorithm} and consists in fixing to 1 all the free variables with a non-zero coefficient in an uncovered row, when said row cannot be covered otherwise.
 
@@ -265,7 +265,8 @@ For each row, we pick the value of $b_i$ uniformly at random between $n$ and $n^
   \item SPR: same as SP but with both the reduction techniques described in Section~\ref{subsec:branch-bound:reduction};
   \item SPRR: same as SPR but with the primal heuristic executed only at the root node;
   \item SPRB: same as SPR but with Beasly branching rule instead of reduced costs branching rule;
-  \item LP: costs branching rule, LP relaxation lower bound, Hall-Hochbaum primal heuristic and column inclusion reduction technique.
+  \item LPC: LP relaxation solved with Gurobi to obtain lower bounds, costs branching rule, Hall-Hochbaum primal heuristic and both the reduction techniques described in Section~\ref{subsec:branch-bound:reduction};
+  \item LPR: same as LPC but with reduced costs branching rule instead of costs branching rule.
 \end{itemize}
 
 Tables~\ref{tab:results:runtime} and~\ref{tab:results:nodes} respectively give the runtime and number of nodes for each of these configurations over randomly generated TRAP instances. We forcibly terminated the algorithm when the runtime exceeded 5 minutes. 
@@ -350,6 +351,8 @@ In this work we described and evaluated a branch-and-bound algorithm to solve th
 Further research might investigate a branch-and-cut algorithm. The cutting plane algorithms reported by Gurobi can provide a starting point.
 
 Additionally, the dual of the LP relaxation of~(\ref{eq:primal}) offers another option to find the optimal Lagrangean multipliers for~(\ref{eq:lagrangean}). In the context of the SCP, this method was adopted, for instance, in~\cite{beasley-1987-algorithm,balas-ho-2009-set-covering}. We performed cursory tests on this method, but ultimately decided to disregard it due to memory overloads when running the branch-and-bound algorithm.
+
+Furthermore, more lower bounding procedures might be explored, possibly combining them through additive bounding.
 
 Finally, the similarities between the TRAP and the CIP might warrant delving into the related literature to search for new ideas. 
 

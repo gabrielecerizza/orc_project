@@ -172,7 +172,7 @@ def dual_lb(A, b, ub, x0, x1, node=None):
     return lb
 
 
-def lp_rel(A, b, ub, x0, x1, node):
+def lp_rel(A, b, ub, x0, x1, node=None):
     """Return the lower bound obtained by solving the 
     linear programming relaxation of the problem.
     
@@ -204,7 +204,13 @@ def lp_rel(A, b, ub, x0, x1, node):
     c = np.sum(A, axis=0)
     m = gp.Model("lp_rel")
     x = m.addMVar(A.shape[-1], lb=0, ub=1, name="x")
+    m.Params.LogToConsole = 0
     m.setObjective(c @ x)
     m.addConstr(A @ x >= b)
+    m.optimize()
+
+    if node is not None:
+        pi = m.getAttr(GRB.Attr.Pi)
+        node.set_lambd(np.array(pi))
     
     return m.getObjective().getValue()
