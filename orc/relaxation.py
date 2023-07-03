@@ -141,6 +141,7 @@ def dual_lb(A, b, ub, x0, x1, node=None):
     y = md.addMVar(A.shape[0], lb=0, name="y")
     md.setObjective(db @ y, GRB.MAXIMIZE)
     constr = md.addConstr(A.T @ y <= c)
+    md.Params.LogToConsole = 0
 
     for j in x0 + x1:
         md.remove(constr[j])

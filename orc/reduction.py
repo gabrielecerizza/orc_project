@@ -104,3 +104,43 @@ def column_inclusion(node, A, b):
     node.add_to_x1(fix1)
 
     return len(fix1) > 0
+
+
+def optimality_reduction(node, A, ub):
+    """Return true if the size of the problem was reduced 
+    by fixing variables to 0 and 1.
+
+    This method fixes to 0 those variables whose cost, when
+    added to the value obtainable from the zero-completion
+    of the partial solution of the node, exceeds the best
+    incumbent upper bound.
+
+    Parameters
+    ----------
+    node : Node
+        Current node of the branch-and-bound data structure.
+    
+    A : np.ndarray
+        Matrix of the left-hand side of the problem.
+
+    ub : int
+        Value of the incumbent upper bound.
+
+    Returns
+    -------
+    reduced : bool
+        True if at least a variable has been fixed to 0 or 1.
+    """
+    c = np.sum(A, axis=0)
+    z = node.get_val(A)
+    unassigned = [j for j in range(A.shape[-1]) 
+                  if j not in node.get_x1() + node.get_x0()]
+    fix0 = []
+
+    for j in unassigned:
+        if z + c[j] > ub:
+            fix0.append(j)
+
+    node.add_to_x0(fix0)
+
+    return len(fix0) > 0

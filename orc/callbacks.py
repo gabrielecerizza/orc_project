@@ -1,7 +1,10 @@
 from abc import ABC
 
 from .primal import primal_heur
-from .reduction import column_inclusion, lagr_penalties
+from .reduction import (
+    column_inclusion, lagr_penalties, 
+    optimality_reduction
+)
 
 
 class BBCallback(ABC):
@@ -83,3 +86,11 @@ class ColumnInclusionCallback(BBCallback):
     """
     def on_reduction(self, node, A, b, ub):
         column_inclusion(node, A, b)
+
+
+class OptReductionCallback(BBCallback):
+    """Callback performing problem reduction using
+    the optimality reduction method.
+    """
+    def on_reduction(self, node, A, b, ub):
+        optimality_reduction(node, A, ub)
