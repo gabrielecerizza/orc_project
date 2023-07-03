@@ -194,7 +194,7 @@ We cannot assume that the optimal Lagrangean multipliers can be confined within 
     \end{bmatrix}$ and a vector $b = \begin{bmatrix}2\\5\\1\end{bmatrix}$. If we run Algorithm~\ref{alg:subgrad} with parameters $f=2$, $k=5$, $\epsilon=0.005$, $\omega=150$ and we bind the Lagrangean multipliers in the range $[0, 1]$, we obtain $z_{\text{LB}} = 8$ and $\lambda = \begin{bmatrix}1\\1\\1\end{bmatrix}$. Running the algorithm with the same parameters, but without bounds on the Lagrangean multipliers, we obtain $z_{\text{LB}} = 10.498$ and $\lambda = \begin{bmatrix}0\\2.259\\0\end{bmatrix}$. \hfill $\square$
 \end{proof}
 
-\subsubsection{Dual of the LP relaxation.} Another option to find the optimal Lagrangean multipliers is to solve the dual of the LP relaxation of~\ref{eq:primal}, which we defined in Section~\ref{subsec:problem:formalization}. In the context of the SCP, this method was adopted, for instance, in~\cite{beasley-1987-algorithm,balas-ho-2009-set-covering}; and it is mentioned as a viable approach in~\cite{caprara-2000-algorithms}, due to the fact that the dual of the LP relaxation has the integrality property.
+\subsubsection{Dual of the LP relaxation.} Another option to find the optimal Lagrangean multipliers is to solve the dual of the LP relaxation of~(\ref{eq:primal}), which we defined in Section~\ref{subsec:problem:formalization}. In the context of the SCP, this method was adopted, for instance, in~\cite{beasley-1987-algorithm,balas-ho-2009-set-covering}; and it is mentioned as a viable approach in~\cite{caprara-2000-algorithms}, due to the fact that the dual of the LP relaxation has the integrality property.
 
 \subsubsection{LP relaxation.} Finally, one could consider solving the LP relaxation of~(\ref{eq:primal}) to obtain a lower bound. In fact, it is observed in~\cite{caprara-2000-algorithms} that ``the lower bound determined by Lagrangian or alternative relaxations is much worse than the optimal solution value of the LP relaxation". The same Authors remark that exact algorithms behave better with LP relaxation, whereas Lagrangean relaxation is better suited for heuristic algorithms.   
 
@@ -288,7 +288,7 @@ Tables~\ref{tab:results:runtime} and~\ref{tab:results:nodes} respectively give t
 
 Concerning runtime, Table~\ref{tab:results:runtime} shows how DR outperforms the other configurations for most of the problem instances. Table~\ref{tab:results:nodes} confirms these results with respect to the number of nodes. Contrary to what was observed in Section~\ref{subsec:branch-bound:lb}, LPC and LPB are not competitive with the best configurations. 
 
-All this considered, the algorithm still performs poorly when compared to Gurobi. A look at the logs of Gurobi reveals that the solver employs a branch-and-cut algorithm, performing root relaxation and finding heuristic solutions periodically. Some of the mentioned cuts are: Gomory, Cover, MIR, StrongCG, Mod-K, Zero half, RLT. As shown in Table~\ref{tab:results:nodes}, Gurobi is capable of solving problem instances also at the root node. 
+All this considered, the algorithm still performs poorly when compared to Gurobi, especially for the largest problem instances which we examined. A look at the logs of Gurobi reveals that the solver employs a branch-and-cut algorithm, performing root relaxation and finding heuristic solutions periodically. Some of the mentioned cuts are: Gomory, Cover, MIR, StrongCG, Mod-K, Zero half, RLT. As shown in Table~\ref{tab:results:nodes}, Gurobi is capable of solving problem instances also at the root node. 
 
 \begin{table}
   \caption{Runtime of different configurations of the branch-and-bound algorithm over randomly generated TRAP instances with different numbers of rows and columns and different densities. The best result obtained by algorithms other than Gurobi is highlighted in bold for each problem instance. The runtime was measured in seconds.}
@@ -353,7 +353,7 @@ All this considered, the algorithm still performs poorly when compared to Gurobi
 \section{Conclusions}
 \label{sec:conclusions}
 
-In this work we described and evaluated a branch-and-bound algorithm to solve the TRAP, employing reduction techniques, different strategies to find upper and lower bounds, and different branching rules. The best algorithm configuration, however, fell short when compared with a state-of-the-art solver.
+In this work we described and evaluated a branch-and-bound algorithm to solve the TRAP, employing reduction techniques, different strategies to find upper and lower bounds, and different branching rules. The best algorithm configurations, however, fell short when compared with a state-of-the-art solver.
 
 Further research might investigate a branch-and-cut algorithm. The cutting plane algorithms reported by Gurobi can provide a starting point. More lower bounding procedures might also be explored, possibly combining them through additive bounding. Finally, the similarities between the TRAP and the CIP might warrant delving into the related literature to search for new ideas. 
 
